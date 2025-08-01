@@ -44,10 +44,43 @@ input::placeholder {
 }
 
 /* Améliorer la lisibilité des textes sur fond blanc */
-.bg-white .text-gray-500 {
+.bg-white .text-gray-700 {
   color: #374151 !important;
 }
 
-.bg-white .text-gray-400 {
+.bg-white .text-gray-600 {
   color: #4B5563 !important;
+}
+
+/* Améliorer la lisibilité des formulaires */
+input, select, textarea {
+  color: #111827 !important; /* Texte noir pour une meilleure lisibilité */
+  background-color: #ffffff !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+/* Options des listes déroulantes */
+select option {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+  padding: 8px 12px;
+}
+
+/* Barres de recherche spécifiques */
+input[type="text"], input[type="search"], input[type="email"], input[type="password"], input[type="tel"] {
+  color: #111827 !important;
+  background-color: #ffffff !important;
+}
+
+input[type="text"]::placeholder, 
+input[type="search"]::placeholder, 
+input[type="email"]::placeholder, 
+input[type="password"]::placeholder,
+input[type="tel"]::placeholder {
+  color: #6B7280 !important;
+  opacity: 0.75;
 }

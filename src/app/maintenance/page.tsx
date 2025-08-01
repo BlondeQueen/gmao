@@ -196,7 +196,7 @@ export default function MaintenancePage() {
               {/* Filtre par statut */}
               <select
                 title="Filtrer par statut"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -210,7 +210,7 @@ export default function MaintenancePage() {
               {/* Filtre par type */}
               <select
                 title="Filtrer par type"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
               >

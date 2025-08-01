@@ -259,7 +259,7 @@ export default function AnalysePage() {
               <Filter className="h-5 w-5 text-gray-600" />
               <select
                 title="Période d'analyse"
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as any)}
               >

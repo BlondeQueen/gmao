@@ -159,7 +159,7 @@ export default function ProfilPage() {
                         title="Nom complet"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                       />
                     ) : (
                       <p className="text-gray-900">{formData.name}</p>
@@ -176,7 +176,7 @@ export default function ProfilPage() {
                         title="Email"
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                       />
                     ) : (
                       <p className="text-gray-900">{formData.email}</p>
@@ -204,7 +204,7 @@ export default function ProfilPage() {
                   <div className="flex justify-end space-x-4">
                     <button
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 text-black bg-white"
                     >
                       Annuler
                     </button>
@@ -310,7 +310,7 @@ export default function ProfilPage() {
                     title="Sélectionner la langue"
                     value={preferences.language}
                     onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-black bg-white"
                   >
                     <option value="fr">Français</option>
                     <option value="en">English</option>
@@ -326,7 +326,7 @@ export default function ProfilPage() {
                     title="Sélectionner la durée de déconnexion automatique"
                     value={preferences.autoLogout}
                     onChange={(e) => setPreferences({ ...preferences, autoLogout: parseInt(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-black bg-white"
                   >
                     <option value={15}>15 minutes</option>
                     <option value={30}>30 minutes</option>
