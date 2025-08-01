@@ -22,9 +22,7 @@ export default function ProfilPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: '',
-    department: '',
-    phone: ''
+    role: ''
   });
   const [preferences, setPreferences] = useState({
     notifications: true,
@@ -50,9 +48,7 @@ export default function ProfilPage() {
     setFormData({
       name: currentUser.name,
       email: currentUser.email,
-      role: currentUser.role,
-      department: currentUser.department || '',
-      phone: currentUser.phone || ''
+      role: currentUser.role
     });
     setLoading(false);
   }, [router, storageManager]);
@@ -62,9 +58,7 @@ export default function ProfilPage() {
       const updatedUser = {
         ...user,
         name: formData.name,
-        email: formData.email,
-        department: formData.department,
-        phone: formData.phone
+        email: formData.email
       };
       setUser(updatedUser);
       setIsEditing(false);
@@ -194,40 +188,6 @@ export default function ProfilPage() {
                       Rôle
                     </label>
                     <p className="text-gray-900">{getRoleText(formData.role)}</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Département
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={formData.department}
-                        onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ex: Maintenance"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{formData.department || 'Non spécifié'}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Téléphone
-                    </label>
-                    {isEditing ? (
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Ex: +237 6XX XXX XXX"
-                      />
-                    ) : (
-                      <p className="text-gray-900">{formData.phone || 'Non spécifié'}</p>
-                    )}
                   </div>
 
                   <div>
