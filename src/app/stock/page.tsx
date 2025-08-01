@@ -270,7 +270,7 @@ export default function StockPage() {
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
               {/* Recherche */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 h-5 w-5" />
                 <input
                   type="text"
                   placeholder="Rechercher un article..."
@@ -321,25 +321,25 @@ export default function StockPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Article
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Catégorie
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Stock
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Valeur
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Emplacement
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -352,8 +352,8 @@ export default function StockPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                          <div className="text-sm text-gray-500">{item.description}</div>
-                          <div className="text-xs text-gray-400">Fournisseur: {item.supplier}</div>
+                          <div className="text-sm text-gray-700">{item.description}</div>
+                          <div className="text-xs text-gray-600">Fournisseur: {item.supplier}</div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -365,7 +365,7 @@ export default function StockPage() {
                         <div className="text-sm text-gray-900">
                           {item.quantity} {item.unit}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-700">
                           Min: {item.minQuantity} {item.unit}
                         </div>
                       </td>
@@ -378,7 +378,7 @@ export default function StockPage() {
                         <div className="text-sm text-gray-900">
                           {(item.quantity * item.unitPrice).toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' })}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-700">
                           {item.unitPrice.toLocaleString('fr-FR', { style: 'currency', currency: 'XAF' })}/ {item.unit}
                         </div>
                       </td>
@@ -410,9 +410,9 @@ export default function StockPage() {
 
           {filteredItems.length === 0 && (
             <div className="text-center py-12">
-              <Package className="mx-auto h-12 w-12 text-gray-400" />
+              <Package className="mx-auto h-12 w-12 text-gray-600" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun article trouvé</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 Aucun article ne correspond aux critères de recherche.
               </p>
             </div>

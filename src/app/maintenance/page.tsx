@@ -312,9 +312,9 @@ export default function MaintenancePage() {
 
           {filteredTasks.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-              <Wrench className="mx-auto h-12 w-12 text-gray-400" />
+              <Wrench className="mx-auto h-12 w-12 text-gray-600" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune tâche trouvée</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 Aucune tâche de maintenance ne correspond aux filtres sélectionnés.
               </p>
             </div>

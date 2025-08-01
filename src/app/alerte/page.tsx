@@ -296,11 +296,11 @@ export default function AlertePage() {
                       </span>
                     </div>
                     
-                    <p className={`mb-3 ${!notification.read ? 'text-gray-700' : 'text-gray-500'}`}>
+                    <p className={`mb-3 ${!notification.read ? 'text-gray-700' : 'text-gray-700'}`}>
                       {notification.message}
                     </p>
                     
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
+                    <div className="flex items-center space-x-4 text-sm text-gray-700">
                       <span className="flex items-center">
                         <Clock className="h-4 w-4 mr-1" />
                         {new Date(notification.timestamp).toLocaleString('fr-FR')}
@@ -333,9 +333,9 @@ export default function AlertePage() {
 
           {filteredNotifications.length === 0 && (
             <div className="text-center py-12 bg-white rounded-lg shadow-sm">
-              <Bell className="mx-auto h-12 w-12 text-gray-400" />
+              <Bell className="mx-auto h-12 w-12 text-gray-600" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucune alerte trouvée</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 Aucune alerte ne correspond aux filtres sélectionnés.
               </p>
             </div>

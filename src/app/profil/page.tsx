@@ -230,7 +230,7 @@ export default function ProfilPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Key className="h-5 w-5 text-gray-400" />
+                    <Key className="h-5 w-5 text-gray-600" />
                     <div>
                       <h3 className="font-medium text-gray-900">Mot de passe</h3>
                       <p className="text-sm text-gray-600">Dernière modification il y a 30 jours</p>
@@ -243,7 +243,7 @@ export default function ProfilPage() {
 
                 <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <Shield className="h-5 w-5 text-gray-400" />
+                    <Shield className="h-5 w-5 text-gray-600" />
                     <div>
                       <h3 className="font-medium text-gray-900">Authentification à deux facteurs</h3>
                       <p className="text-sm text-gray-600">Sécurisez votre compte avec 2FA</p>
@@ -269,7 +269,7 @@ export default function ProfilPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Bell className="h-5 w-5 text-gray-400" />
+                    <Bell className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Notifications</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -286,7 +286,7 @@ export default function ProfilPage() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <Monitor className="h-5 w-5 text-gray-400" />
+                    <Monitor className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Mode sombre</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -303,7 +303,7 @@ export default function ProfilPage() {
 
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
-                    <Globe className="h-5 w-5 text-gray-400" />
+                    <Globe className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Langue</span>
                   </div>
                   <select
@@ -319,7 +319,7 @@ export default function ProfilPage() {
 
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
-                    <Shield className="h-5 w-5 text-gray-400" />
+                    <Shield className="h-5 w-5 text-gray-600" />
                     <span className="text-sm font-medium text-gray-700">Déconnexion automatique</span>
                   </div>
                   <select
@@ -342,11 +342,11 @@ export default function ProfilPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
               <div className="space-y-3">
                 <button className="w-full flex items-center space-x-3 p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <Settings className="h-5 w-5 text-gray-400" />
+                  <Settings className="h-5 w-5 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Paramètres avancés</span>
                 </button>
                 <button className="w-full flex items-center space-x-3 p-3 text-left border border-gray-200 rounded-lg hover:bg-gray-50">
-                  <Monitor className="h-5 w-5 text-gray-400" />
+                  <Monitor className="h-5 w-5 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">Historique d'activité</span>
                 </button>
                 <button 

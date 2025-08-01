@@ -88,7 +88,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">GMAO Dangote</h1>
           <p className="text-gray-600">Gestion de Maintenance Assistée par Ordinateur</p>
-          <p className="text-sm text-gray-500 mt-1">Dangote Cement Cameroon</p>
+          <p className="text-sm text-gray-700 mt-1">Dangote Cement Cameroon</p>
         </div>
 
         {/* Formulaire */}
@@ -178,7 +178,7 @@ export default function LoginPage() {
                 Nom d&apos;utilisateur
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-600" />
                 <input
                   type="text"
                   required
@@ -195,7 +195,7 @@ export default function LoginPage() {
                 Mot de passe
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-2.5 h-5 w-5 text-gray-600" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
@@ -206,7 +206,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-2.5 text-gray-600 hover:text-gray-600"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -242,7 +242,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-sm text-gray-500">
+        <div className="text-center mt-6 text-sm text-gray-700">
           <p>© 2025 Dangote Cement Cameroon</p>
           <p>Système de Gestion de Maintenance</p>
         </div>

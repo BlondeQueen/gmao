@@ -110,7 +110,7 @@ export default function EquipmentPage() {
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
               {/* Recherche */}
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-600" />
                 <input
                   type="text"
                   placeholder="Rechercher un équipement..."
@@ -122,7 +122,7 @@ export default function EquipmentPage() {
 
               {/* Filtre par statut */}
               <div className="relative">
-                <Filter className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                <Filter className="absolute left-3 top-2.5 h-5 w-5 text-gray-600" />
                               <select
                 title="Filtrer par statut"
                 className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
@@ -152,22 +152,22 @@ export default function EquipmentPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Équipement
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Localisation
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Statut
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Prochaine Maintenance
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -180,7 +180,7 @@ export default function EquipmentPage() {
                         <div className="text-sm font-medium text-gray-900">
                           {equipment.name}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-gray-700">
                           {equipment.manufacturer} - {equipment.model}
                         </div>
                       </div>
@@ -223,9 +223,9 @@ export default function EquipmentPage() {
 
           {filteredEquipments.length === 0 && (
             <div className="text-center py-12">
-              <Wrench className="mx-auto h-12 w-12 text-gray-400" />
+              <Wrench className="mx-auto h-12 w-12 text-gray-600" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">Aucun équipement trouvé</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 {searchTerm || filterStatus !== 'all' 
                   ? 'Essayez de modifier vos critères de recherche.'
                   : 'Commencez par ajouter un nouvel équipement.'

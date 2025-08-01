@@ -244,7 +244,7 @@ export default function PlanningPage() {
                     } ${isToday(day) ? 'bg-blue-50' : ''}`}
                   >
                     <div className={`text-sm font-medium mb-2 ${
-                      !isCurrentMonth(day) ? 'text-gray-400' : 
+                      !isCurrentMonth(day) ? 'text-gray-600' : 
                       isToday(day) ? 'text-blue-600' : 'text-gray-900'
                     }`}>
                       {day.getDate()}
@@ -260,7 +260,7 @@ export default function PlanningPage() {
                         </div>
                       ))}
                       {dayTasks.length > 3 && (
-                        <div className="text-xs text-gray-500 px-2">
+                        <div className="text-xs text-gray-700 px-2">
                           +{dayTasks.length - 3} autre(s)
                         </div>
                       )}
@@ -306,13 +306,13 @@ export default function PlanningPage() {
                           day: 'numeric' 
                         })}
                       </h3>
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-700">
                         {dayTasks.length} tâche(s)
                       </span>
                     </div>
 
                     {dayTasks.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">
+                      <p className="text-gray-700 text-center py-8">
                         Aucune tâche planifiée pour cette journée
                       </p>
                     ) : (
