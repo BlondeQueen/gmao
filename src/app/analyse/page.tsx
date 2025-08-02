@@ -24,6 +24,7 @@ export default function AnalysePage() {
   const [breakdowns, setBreakdowns] = useState<Breakdown[]>([]);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [loading, setLoading] = useState(true);
+  const [selectedChartType, setSelectedChartType] = useState<'overview' | 'trends' | 'performance'>('overview');
 
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
@@ -216,6 +217,133 @@ export default function AnalysePage() {
 
   const kpiData = getKPIData();
 
+  // Fonction d'export de rapport
+  const exportReport = () => {
+    const reportData = {
+      timestamp: new Date().toLocaleString('fr-FR'),
+      period: dateRange,
+      kpis: kpiData,
+      equipmentDetails: equipments.map(equipment => {
+        const equipmentBreakdowns = breakdowns.filter(b => b.equipmentId === equipment.id);
+        const equipmentTasks = tasks.filter(t => t.equipmentId === equipment.id);
+        
+        const now = new Date();
+        const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        return {
+          name: equipment.name,
+          status: equipment.status,
+          availability: PerformanceCalculator.calculateAvailability(equipment.id, breakdowns, tasks, oneMonthAgo, now),
+          mtbf: PerformanceCalculator.calculateMTBF(equipment.id, breakdowns, oneMonthAgo, now),
+          breakdownCount: equipmentBreakdowns.length,
+          maintenanceCount: equipmentTasks.length
+        };
+      })
+    };
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `rapport-gmao-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Données pour les graphiques de tendances de performance
+  const getPerformanceTrendData = () => {
+    const months = [];
+    const availabilityTrend = [];
+    const mtbfTrend = [];
+    const now = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('fr-FR', { month: 'short' });
+      months.push(monthName);
+      
+      // Calculer la disponibilité moyenne pour ce mois
+      let totalAvailability = 0;
+      let totalMtbf = 0;
+      let equipmentCount = 0;
+      
+      equipments.forEach(equipment => {
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        
+        const availability = PerformanceCalculator.calculateAvailability(
+          equipment.id, 
+          breakdowns, 
+          tasks, 
+          monthStart, 
+          monthEnd
+        );
+        const mtbf = PerformanceCalculator.calculateMTBF(
+          equipment.id, 
+          breakdowns, 
+          monthStart, 
+          monthEnd
+        );
+        
+        totalAvailability += availability;
+        if (mtbf > 0) {
+          totalMtbf += mtbf;
+          equipmentCount++;
+        }
+      });
+      
+      availabilityTrend.push(equipments.length > 0 ? totalAvailability / equipments.length : 0);
+      mtbfTrend.push(equipmentCount > 0 ? totalMtbf / equipmentCount : 0);
+    }
+
+    return {
+      labels: months,
+      datasets: [
+        {
+          label: 'Disponibilité moyenne (%)',
+          data: availabilityTrend,
+          borderColor: 'rgba(34, 197, 94, 1)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          tension: 0.4,
+          yAxisID: 'y'
+        },
+        {
+          label: 'MTBF moyen (h)',
+          data: mtbfTrend,
+          borderColor: 'rgba(59, 130, 246, 1)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          tension: 0.4,
+          yAxisID: 'y1'
+        }
+      ]
+    };
+  };
+
+  // Données pour les coûts de maintenance
+  const getMaintenanceCostData = () => {
+    const preventiveCost = tasks.filter(t => t.type === 'preventive').length * 1500; // Coût estimé
+    const correctiveCost = tasks.filter(t => t.type === 'corrective').length * 3500; // Coût estimé
+
+    return {
+      labels: ['Maintenance préventive', 'Maintenance corrective'],
+      datasets: [{
+        label: 'Coûts estimés (XAF)',
+        data: [preventiveCost, correctiveCost],
+        backgroundColor: [
+          'rgba(34, 197, 94, 0.8)',
+          'rgba(239, 68, 68, 0.8)'
+        ],
+        borderColor: [
+          'rgba(34, 197, 94, 1)',
+          'rgba(239, 68, 68, 1)'
+        ],
+        borderWidth: 2
+      }]
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -268,8 +396,22 @@ export default function AnalysePage() {
                 <option value="90d">3 derniers mois</option>
                 <option value="1y">Dernière année</option>
               </select>
+              
+              <select
+                title="Type d'analyse"
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                value={selectedChartType}
+                onChange={(e) => setSelectedChartType(e.target.value as any)}
+              >
+                <option value="overview">Vue d'ensemble</option>
+                <option value="trends">Tendances</option>
+                <option value="performance">Performance</option>
+              </select>
             </div>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <button 
+              onClick={exportReport}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
               <Download className="h-5 w-5" />
               <span>Exporter le rapport</span>
             </button>
@@ -334,100 +476,263 @@ export default function AnalysePage() {
           </div>
         </div>
 
-        {/* Graphiques */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Disponibilité par équipement */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Disponibilité par Équipement</h3>
-            <div className="h-64">
-              <Bar 
-                data={getAvailabilityChartData()} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      max: 100,
-                      ticks: {
-                        callback: function(value) {
-                          return value + '%';
+        {/* Graphiques dynamiques */}
+        {selectedChartType === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Disponibilité par équipement */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Disponibilité par Équipement</h3>
+              <div className="h-64">
+                <Bar 
+                  data={getAvailabilityChartData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                          callback: function(value) {
+                            return value + '%';
+                          }
                         }
                       }
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
                     }
-                  },
-                  plugins: {
-                    legend: {
-                      display: false
-                    }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Évolution des pannes */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution des Pannes</h3>
-            <div className="h-64">
-              <Line 
-                data={getBreakdownTrendData()} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true
+            {/* Types de maintenance */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition des Maintenances</h3>
+              <div className="h-64">
+                <Pie 
+                  data={getMaintenanceTypeData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom'
+                      }
                     }
-                  },
-                  plugins: {
-                    legend: {
-                      display: false
-                    }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Types de maintenance */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Répartition des Maintenances</h3>
-            <div className="h-64">
-              <Pie 
-                data={getMaintenanceTypeData()} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'bottom'
+            {/* Statuts des équipements */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Statuts des Équipements</h3>
+              <div className="h-64">
+                <Pie 
+                  data={getEquipmentStatusData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        position: 'bottom'
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
-          </div>
 
-          {/* Statuts des équipements */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">État des Équipements</h3>
-            <div className="h-64">
-              <Pie 
-                data={getEquipmentStatusData()} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'bottom'
+            {/* Coûts de maintenance */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Coûts de Maintenance Estimés</h3>
+              <div className="h-64">
+                <Bar 
+                  data={getMaintenanceCostData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return new Intl.NumberFormat('fr-FR', { 
+                              style: 'currency', 
+                              currency: 'XAF',
+                              minimumFractionDigits: 0
+                            }).format(value as number);
+                          }
+                        }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {selectedChartType === 'trends' && (
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            {/* Évolution des pannes */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Évolution des Pannes sur 6 Mois</h3>
+              <div className="h-80">
+                <Line 
+                  data={getBreakdownTrendData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        beginAtZero: true
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        display: false
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Tendances de performance */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Tendances de Performance sur 12 Mois</h3>
+              <div className="h-80">
+                <Line 
+                  data={getPerformanceTrendData()} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                          callback: function(value) {
+                            return value + '%';
+                          }
+                        }
+                      },
+                      y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                          drawOnChartArea: false,
+                        },
+                        ticks: {
+                          callback: function(value) {
+                            return value + 'h';
+                          }
+                        }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        display: true,
+                        position: 'top'
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedChartType === 'performance' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Performance détaillée par équipement */}
+            <div className="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Analyse de Performance Détaillée</h3>
+              <div className="h-96">
+                <Bar 
+                  data={{
+                    labels: equipments.slice(0, 8).map(e => e.name),
+                    datasets: [
+                      {
+                        label: 'Disponibilité (%)',
+                        data: equipments.slice(0, 8).map(equipment => {
+                          const now = new Date();
+                          const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                          return PerformanceCalculator.calculateAvailability(equipment.id, breakdowns, tasks, oneMonthAgo, now);
+                        }),
+                        backgroundColor: 'rgba(34, 197, 94, 0.8)',
+                        yAxisID: 'y'
+                      },
+                      {
+                        label: 'MTBF (h)',
+                        data: equipments.slice(0, 8).map(equipment => {
+                          const now = new Date();
+                          const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                          return PerformanceCalculator.calculateMTBF(equipment.id, breakdowns, oneMonthAgo, now) / 10; // Divisé par 10 pour l'échelle
+                        }),
+                        backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                        yAxisID: 'y1'
+                      }
+                    ]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                          callback: function(value) {
+                            return value + '%';
+                          }
+                        }
+                      },
+                      y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        grid: {
+                          drawOnChartArea: false,
+                        },
+                        ticks: {
+                          callback: function(value) {
+                            return (value as number * 10) + 'h';
+                          }
+                        }
+                      }
+                    },
+                    plugins: {
+                      legend: {
+                        display: true,
+                        position: 'top'
+                      }
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tableau de synthèse */}
         <div className="bg-white rounded-lg shadow-sm p-6">
