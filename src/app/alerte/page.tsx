@@ -12,7 +12,9 @@ import {
   Filter,
   Clock,
   User,
-  Settings
+  Settings,
+  Plus,
+  XCircle
 } from 'lucide-react';
 import StorageManager, { type Equipment, type MaintenanceTask, type Breakdown, type Notification } from '@/lib/storage';
 
@@ -24,6 +26,16 @@ export default function AlertePage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [formData, setFormData] = useState({
+    type: 'system' as Notification['type'],
+    title: '',
+    message: '',
+    priority: 'medium' as Notification['priority'],
+    relatedId: '',
+    relatedType: 'system' as Notification['relatedType'],
+    actionRequired: false
+  });
 
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
@@ -42,12 +54,105 @@ export default function AlertePage() {
     const tasksData = storageManager.getMaintenanceTasks();
     const breakdownsData = storageManager.getBreakdowns();
     
-    setNotifications(notificationsData);
+    // Générer les alertes automatiques
+    const generatedAlerts = generateAutomaticAlerts(equipmentsData, tasksData);
+    const allNotifications = [...notificationsData, ...generatedAlerts];
+    
+    setNotifications(allNotifications);
     setEquipments(equipmentsData);
     setTasks(tasksData);
     setBreakdowns(breakdownsData);
     setLoading(false);
   }, [router, storageManager]);
+
+  // Fonction pour générer les alertes automatiques
+  const generateAutomaticAlerts = (equipments: Equipment[], tasks: MaintenanceTask[]): Notification[] => {
+    const alerts: Notification[] = [];
+    const now = new Date();
+
+    // Alertes de maintenance due
+    tasks.forEach(task => {
+      const taskDate = new Date(task.scheduledDate);
+      const daysUntilMaintenance = Math.ceil((taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilMaintenance <= 7 && daysUntilMaintenance >= 0 && task.status === 'scheduled') {
+        alerts.push({
+          id: `maint-${task.id}`,
+          type: 'maintenance_due',
+          title: `Maintenance programmée - ${task.title}`,
+          message: `La maintenance "${task.title}" est prévue dans ${daysUntilMaintenance} jour(s). Équipement concerné: ${getEquipmentName(task.equipmentId)}.`,
+          timestamp: now.toISOString(),
+          read: false,
+          priority: daysUntilMaintenance <= 2 ? 'high' : daysUntilMaintenance <= 5 ? 'medium' : 'low',
+          relatedId: task.id,
+          relatedType: 'task',
+          actionRequired: true
+        });
+      }
+
+      // Alertes de tâches en retard
+      if (daysUntilMaintenance < 0 && task.status === 'scheduled') {
+        alerts.push({
+          id: `overdue-${task.id}`,
+          type: 'task_overdue',
+          title: `Maintenance en retard - ${task.title}`,
+          message: `La maintenance "${task.title}" était prévue il y a ${Math.abs(daysUntilMaintenance)} jour(s) et n'a pas encore été effectuée.`,
+          timestamp: now.toISOString(),
+          read: false,
+          priority: 'urgent',
+          relatedId: task.id,
+          relatedType: 'task',
+          actionRequired: true
+        });
+      }
+    });
+
+    // Alertes d'équipements en panne
+    equipments.forEach(equipment => {
+      if (equipment.status === 'breakdown') {
+        alerts.push({
+          id: `breakdown-${equipment.id}`,
+          type: 'breakdown_alert',
+          title: `Panne détectée - ${equipment.name}`,
+          message: `L'équipement "${equipment.name}" (${equipment.type}) est actuellement en panne et nécessite une intervention immédiate.`,
+          timestamp: now.toISOString(),
+          read: false,
+          priority: 'urgent',
+          relatedId: equipment.id,
+          relatedType: 'equipment',
+          actionRequired: true
+        });
+      }
+
+      // Alertes d'équipements en maintenance depuis trop longtemps
+      if (equipment.status === 'maintenance') {
+        const nextMaintenanceDate = new Date(equipment.nextMaintenanceDate);
+        const daysSinceMaintenance = Math.ceil((now.getTime() - nextMaintenanceDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceMaintenance > 30) {
+          alerts.push({
+            id: `long-maint-${equipment.id}`,
+            type: 'maintenance_due',
+            title: `Maintenance prolongée - ${equipment.name}`,
+            message: `L'équipement "${equipment.name}" est en maintenance depuis plus de 30 jours. Vérification recommandée.`,
+            timestamp: now.toISOString(),
+            read: false,
+            priority: 'medium',
+            relatedId: equipment.id,
+            relatedType: 'equipment',
+            actionRequired: true
+          });
+        }
+      }
+    });
+
+    return alerts;
+  };
+
+  const getEquipmentName = (equipmentId: string) => {
+    const equipment = equipments.find(e => e.id === equipmentId);
+    return equipment ? equipment.name : 'Équipement inconnu';
+  };
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => prev.map(notif => 
@@ -61,16 +166,63 @@ export default function AlertePage() {
     setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
   };
 
+  const markAllAsRead = () => {
+    setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
+  };
+
+  const deleteAllRead = () => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer toutes les alertes lues ?')) {
+      setNotifications(prev => prev.filter(notif => !notif.read));
+    }
+  };
+
+  const handleCreateAlert = () => {
+    setFormData({
+      type: 'system',
+      title: '',
+      message: '',
+      priority: 'medium',
+      relatedId: '',
+      relatedType: 'system',
+      actionRequired: false
+    });
+    setShowModal(true);
+  };
+
+  const handleSaveAlert = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const newAlert: Notification = {
+      id: `manual-${Date.now()}`,
+      type: formData.type,
+      title: formData.title,
+      message: formData.message,
+      timestamp: new Date().toISOString(),
+      read: false,
+      priority: formData.priority,
+      relatedId: formData.relatedId || undefined,
+      relatedType: formData.relatedType,
+      actionRequired: formData.actionRequired
+    };
+
+    setNotifications(prev => [newAlert, ...prev]);
+    setShowModal(false);
+  };
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'maintenance_due':
         return <Clock className="h-5 w-5 text-blue-600" />;
-      case 'breakdown':
+      case 'breakdown_alert':
         return <AlertTriangle className="h-5 w-5 text-red-600" />;
       case 'low_stock':
         return <AlertCircle className="h-5 w-5 text-yellow-600" />;
       case 'task_completed':
         return <CheckCircle className="h-5 w-5 text-green-600" />;
+      case 'task_overdue':
+        return <AlertTriangle className="h-5 w-5 text-red-600" />;
+      case 'sensor_alert':
+        return <AlertCircle className="h-5 w-5 text-orange-600" />;
       case 'system':
         return <Info className="h-5 w-5 text-blue-600" />;
       default:
@@ -79,6 +231,9 @@ export default function AlertePage() {
   };
 
   const getNotificationColor = (type: string, priority: string) => {
+    if (priority === 'urgent') {
+      return 'border-l-4 border-red-600 bg-red-50';
+    }
     if (priority === 'high') {
       return 'border-l-4 border-red-500 bg-red-50';
     }
@@ -90,6 +245,7 @@ export default function AlertePage() {
 
   const getPriorityText = (priority: string) => {
     switch (priority) {
+      case 'urgent': return 'Urgente';
       case 'high': return 'Élevée';
       case 'medium': return 'Moyenne';
       case 'low': return 'Faible';
@@ -100,9 +256,11 @@ export default function AlertePage() {
   const getTypeText = (type: string) => {
     switch (type) {
       case 'maintenance_due': return 'Maintenance due';
-      case 'breakdown': return 'Panne';
+      case 'breakdown_alert': return 'Panne';
       case 'low_stock': return 'Stock faible';
       case 'task_completed': return 'Tâche terminée';
+      case 'task_overdue': return 'Tâche en retard';
+      case 'sensor_alert': return 'Alerte capteur';
       case 'system': return 'Système';
       default: return type;
     }
@@ -119,14 +277,10 @@ export default function AlertePage() {
   const getAlertStatistics = () => {
     const total = notifications.length;
     const unread = notifications.filter(n => !n.read).length;
-    const high = notifications.filter(n => n.priority === 'high').length;
-    const today = notifications.filter(n => {
-      const notifDate = new Date(n.timestamp);
-      const today = new Date();
-      return notifDate.toDateString() === today.toDateString();
-    }).length;
+    const urgent = notifications.filter(n => n.priority === 'urgent').length;
+    const actionRequired = notifications.filter(n => n.actionRequired && !n.read).length;
     
-    return { total, unread, high, today };
+    return { total, unread, urgent, actionRequired };
   };
 
   const stats = getAlertStatistics();
@@ -199,17 +353,17 @@ export default function AlertePage() {
             <div className="flex items-center">
               <AlertTriangle className="h-8 w-8 text-red-600" />
               <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">{stats.high}</div>
-                <div className="text-sm text-gray-600">Priorité élevée</div>
+                <div className="text-2xl font-bold text-gray-900">{stats.urgent}</div>
+                <div className="text-sm text-gray-600">Urgentes</div>
               </div>
             </div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-4">
             <div className="flex items-center">
-              <Clock className="h-8 w-8 text-green-600" />
+              <Settings className="h-8 w-8 text-purple-600" />
               <div className="ml-3">
-                <div className="text-2xl font-bold text-gray-900">{stats.today}</div>
-                <div className="text-sm text-gray-600">Aujourd'hui</div>
+                <div className="text-2xl font-bold text-gray-900">{stats.actionRequired}</div>
+                <div className="text-sm text-gray-600">Action requise</div>
               </div>
             </div>
           </div>
@@ -228,9 +382,11 @@ export default function AlertePage() {
               >
                 <option value="all">Tous les types</option>
                 <option value="maintenance_due">Maintenance due</option>
-                <option value="breakdown">Panne</option>
+                <option value="breakdown_alert">Panne</option>
+                <option value="task_overdue">Tâche en retard</option>
                 <option value="low_stock">Stock faible</option>
                 <option value="task_completed">Tâche terminée</option>
+                <option value="sensor_alert">Alerte capteur</option>
                 <option value="system">Système</option>
               </select>
 
@@ -250,12 +406,23 @@ export default function AlertePage() {
             {/* Actions rapides */}
             <div className="flex space-x-2">
               <button 
-                onClick={() => {
-                  setNotifications(prev => prev.map(notif => ({ ...notif, read: true })));
-                }}
+                onClick={handleCreateAlert}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center space-x-2"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Nouvelle Alerte</span>
+              </button>
+              <button 
+                onClick={markAllAsRead}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
               >
                 Marquer tout comme lu
+              </button>
+              <button 
+                onClick={deleteAllRead}
+                className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+              >
+                Supprimer les lues
               </button>
             </div>
           </div>
@@ -285,6 +452,7 @@ export default function AlertePage() {
                         <span className="inline-flex w-2 h-2 bg-blue-600 rounded-full"></span>
                       )}
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        notification.priority === 'urgent' ? 'bg-red-200 text-red-900' :
                         notification.priority === 'high' ? 'bg-red-100 text-red-800' :
                         notification.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-green-100 text-green-800'
@@ -387,6 +555,150 @@ export default function AlertePage() {
           </div>
         </div>
       </div>
+
+      {/* Modal pour créer une alerte manuelle */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-black">
+                Créer une nouvelle alerte
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAlert} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Type d'alerte *
+                  </label>
+                  <select
+                    value={formData.type}
+                    onChange={(e) => setFormData({...formData, type: e.target.value as Notification['type']})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    required
+                  >
+                    <option value="system">Système</option>
+                    <option value="maintenance_due">Maintenance due</option>
+                    <option value="breakdown_alert">Panne</option>
+                    <option value="low_stock">Stock faible</option>
+                    <option value="task_overdue">Tâche en retard</option>
+                    <option value="sensor_alert">Alerte capteur</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Priorité *
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData({...formData, priority: e.target.value as Notification['priority']})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    required
+                  >
+                    <option value="low">Faible</option>
+                    <option value="medium">Moyenne</option>
+                    <option value="high">Élevée</option>
+                    <option value="urgent">Urgente</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Titre de l'alerte *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    placeholder="Titre descriptif de l'alerte"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Message détaillé *
+                  </label>
+                  <textarea
+                    value={formData.message}
+                    onChange={(e) => setFormData({...formData, message: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    rows={4}
+                    placeholder="Description détaillée de l'alerte..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Type d'élément associé
+                  </label>
+                  <select
+                    value={formData.relatedType}
+                    onChange={(e) => setFormData({...formData, relatedType: e.target.value as Notification['relatedType']})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                  >
+                    <option value="system">Système</option>
+                    <option value="equipment">Équipement</option>
+                    <option value="task">Tâche</option>
+                    <option value="stock">Stock</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    ID de l'élément (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.relatedId}
+                    onChange={(e) => setFormData({...formData, relatedId: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    placeholder="ID de l'équipement, tâche, etc."
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.actionRequired}
+                      onChange={(e) => setFormData({...formData, actionRequired: e.target.checked})}
+                      className="mr-2 rounded border-gray-300 text-blue-600"
+                    />
+                    <span className="text-sm text-black">Action requise de la part de l'utilisateur</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Créer l'alerte
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

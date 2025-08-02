@@ -64,13 +64,15 @@ export interface MaintenanceTask {
 
 export interface Notification {
   id: string;
-  type: 'maintenance_due' | 'breakdown_alert' | 'sensor_alert' | 'task_overdue';
+  type: 'maintenance_due' | 'breakdown_alert' | 'sensor_alert' | 'task_overdue' | 'low_stock' | 'task_completed' | 'system';
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   relatedId?: string; // ID de l'équipement, tâche, etc.
+  relatedType?: 'equipment' | 'task' | 'stock' | 'system';
+  actionRequired?: boolean;
 }
 
 class StorageManager {
