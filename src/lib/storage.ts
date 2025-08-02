@@ -195,6 +195,52 @@ class StorageManager {
     }
   }
 
+  deleteMaintenanceTask(taskId: string): void {
+    const tasks = this.getMaintenanceTasks();
+    const filteredTasks = tasks.filter(t => t.id !== taskId);
+    this.saveMaintenanceTasks(filteredTasks);
+  }
+
+  // Gestion des tâches de planning (spécifique au calendrier)
+  getPlanningTasks(): any[] {
+    const planningTasks = localStorage.getItem('planningTasks');
+    if (planningTasks) {
+      return JSON.parse(planningTasks);
+    }
+    // Si pas de tâches de planning spécifiques, utiliser les tâches de maintenance
+    return this.getMaintenanceTasks();
+  }
+
+  savePlanningTasks(tasks: any[]): void {
+    localStorage.setItem('planningTasks', JSON.stringify(tasks));
+  }
+
+  addPlanningTask(task: any): void {
+    const tasks = this.getPlanningTasks();
+    const newTask = {
+      ...task,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString()
+    };
+    tasks.push(newTask);
+    this.savePlanningTasks(tasks);
+  }
+
+  updatePlanningTask(taskId: string, updates: any): void {
+    const tasks = this.getPlanningTasks();
+    const index = tasks.findIndex(t => t.id === taskId);
+    if (index !== -1) {
+      tasks[index] = { ...tasks[index], ...updates };
+      this.savePlanningTasks(tasks);
+    }
+  }
+
+  deletePlanningTask(taskId: string): void {
+    const tasks = this.getPlanningTasks();
+    const filteredTasks = tasks.filter(t => t.id !== taskId);
+    this.savePlanningTasks(filteredTasks);
+  }
+
   // Gestion des notifications
   getNotifications(): Notification[] {
     const notifications = localStorage.getItem('notifications');
