@@ -11,7 +11,8 @@ import {
   TrendingUp,
   Edit,
   Trash2,
-  Filter
+  Filter,
+  XCircle
 } from 'lucide-react';
 import StorageManager, { type Equipment } from '@/lib/storage';
 
@@ -37,6 +38,20 @@ export default function StockPage() {
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    category: '',
+    quantity: 0,
+    minQuantity: 0,
+    unit: 'pièce',
+    unitPrice: 0,
+    supplier: '',
+    location: '',
+    equipmentIds: [] as string[]
+  });
 
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
@@ -186,6 +201,82 @@ export default function StockPage() {
 
   const stats = getStockStatistics();
 
+  // Fonctions CRUD
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      category: '',
+      quantity: 0,
+      minQuantity: 0,
+      unit: 'pièce',
+      unitPrice: 0,
+      supplier: '',
+      location: '',
+      equipmentIds: []
+    });
+    setEditingItem(null);
+  };
+
+  const handleAddItem = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleEditItem = (item: StockItem) => {
+    setEditingItem(item);
+    setFormData({
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      quantity: item.quantity,
+      minQuantity: item.minQuantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      supplier: item.supplier,
+      location: item.location,
+      equipmentIds: item.equipmentIds
+    });
+    setShowModal(true);
+  };
+
+  const handleDeleteItem = (itemId: string) => {
+    if (window.confirm('Êtes-vous sûr de vouloir supprimer cet article ?')) {
+      setStockItems(prev => prev.filter(item => item.id !== itemId));
+      // Ici on pourrait aussi sauvegarder dans le StorageManager
+    }
+  };
+
+  const handleSaveItem = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const itemData: StockItem = {
+      id: editingItem ? editingItem.id : Date.now().toString(),
+      name: formData.name,
+      description: formData.description,
+      category: formData.category,
+      quantity: formData.quantity,
+      minQuantity: formData.minQuantity,
+      unit: formData.unit,
+      unitPrice: formData.unitPrice,
+      supplier: formData.supplier,
+      location: formData.location,
+      equipmentIds: formData.equipmentIds,
+      lastUpdated: new Date().toISOString()
+    };
+
+    if (editingItem) {
+      setStockItems(prev => prev.map(item => 
+        item.id === editingItem.id ? itemData : item
+      ));
+    } else {
+      setStockItems(prev => [...prev, itemData]);
+    }
+
+    setShowModal(false);
+    resetForm();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -308,7 +399,10 @@ export default function StockPage() {
             </div>
 
             {/* Bouton d'ajout */}
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <button 
+              onClick={handleAddItem}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
               <Plus className="h-5 w-5" />
               <span>Nouvel Article</span>
             </button>
@@ -334,7 +428,7 @@ export default function StockPage() {
                     Statut
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    Valeur
+                    Prix unitaire
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     Emplacement
@@ -389,12 +483,14 @@ export default function StockPage() {
                         <div className="flex space-x-2">
                           <button 
                             title="Modifier l'article"
+                            onClick={() => handleEditItem(item)}
                             className="text-blue-600 hover:text-blue-900 p-1"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
                             title="Supprimer l'article"
+                            onClick={() => handleDeleteItem(item.id)}
                             className="text-red-600 hover:text-red-900 p-1"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -441,6 +537,212 @@ export default function StockPage() {
           </div>
         )}
       </div>
+
+      {/* Modal pour ajouter/modifier un article */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-black">
+                {editingItem ? 'Modifier l\'article' : 'Nouvel article de stock'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveItem} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Nom de l'article *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Catégorie *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    placeholder="ex: Roulements, Courroies, Lubrifiants..."
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Description *
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    rows={2}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Quantité actuelle *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({...formData, quantity: parseInt(e.target.value) || 0})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Quantité minimale *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.minQuantity}
+                    onChange={(e) => setFormData({...formData, minQuantity: parseInt(e.target.value) || 0})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Unité *
+                  </label>
+                  <select
+                    value={formData.unit}
+                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    required
+                  >
+                    <option value="pièce">Pièce</option>
+                    <option value="litres">Litres</option>
+                    <option value="kg">Kilogrammes</option>
+                    <option value="mètres">Mètres</option>
+                    <option value="boîte">Boîte</option>
+                    <option value="sac">Sac</option>
+                    <option value="fût">Fût</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Prix unitaire (XAF) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.unitPrice}
+                    onChange={(e) => setFormData({...formData, unitPrice: parseFloat(e.target.value) || 0})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    min="0"
+                    step="0.01"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Fournisseur *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.supplier}
+                    onChange={(e) => setFormData({...formData, supplier: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Emplacement *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-black bg-white"
+                    placeholder="ex: Magasin A - Étagère 3"
+                    required
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-black mb-1">
+                    Équipements concernés
+                  </label>
+                  <div className="space-y-2 max-h-32 overflow-y-auto border border-gray-300 rounded-md p-3">
+                    {equipments.map(equipment => (
+                      <label key={equipment.id} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={formData.equipmentIds.includes(equipment.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                equipmentIds: [...formData.equipmentIds, equipment.id]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                equipmentIds: formData.equipmentIds.filter(id => id !== equipment.id)
+                              });
+                            }
+                          }}
+                          className="mr-2"
+                        />
+                        <span className="text-sm text-black">{equipment.name} - {equipment.model}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    resetForm();
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  {editingItem ? 'Modifier' : 'Créer'} l'article
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,6 +10,18 @@ export default function EquipmentPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    type: 'heat_exchanger' as Equipment['type'],
+    location: '',
+    status: 'operational' as Equipment['status'],
+    manufacturer: '',
+    model: '',
+    installationDate: '',
+    nextMaintenanceDate: ''
+  });
 
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
@@ -27,6 +39,77 @@ export default function EquipmentPage() {
     setEquipments(equipmentsData);
     setLoading(false);
   }, [router, storageManager]);
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      type: 'heat_exchanger',
+      location: '',
+      status: 'operational',
+      manufacturer: '',
+      model: '',
+      installationDate: '',
+      nextMaintenanceDate: ''
+    });
+    setEditingEquipment(null);
+  };
+
+  const handleAddEquipment = () => {
+    resetForm();
+    setShowModal(true);
+  };
+
+  const handleEditEquipment = (equipment: Equipment) => {
+    setFormData({
+      name: equipment.name,
+      type: equipment.type,
+      location: equipment.location,
+      status: equipment.status,
+      manufacturer: equipment.manufacturer,
+      model: equipment.model,
+      installationDate: equipment.installationDate,
+      nextMaintenanceDate: equipment.nextMaintenanceDate
+    });
+    setEditingEquipment(equipment);
+    setShowModal(true);
+  };
+
+  const handleDeleteEquipment = (equipmentId: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cet équipement ?')) {
+      const updatedEquipments = equipments.filter(eq => eq.id !== equipmentId);
+      setEquipments(updatedEquipments);
+      storageManager.saveEquipments(updatedEquipments);
+    }
+  };
+
+  const handleSaveEquipment = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingEquipment) {
+      // Modifier l'équipement existant
+      const updatedEquipment = {
+        ...editingEquipment,
+        ...formData
+      };
+      storageManager.updateEquipment(editingEquipment.id, formData);
+      const updatedEquipments = equipments.map(eq => 
+        eq.id === editingEquipment.id ? updatedEquipment : eq
+      );
+      setEquipments(updatedEquipments);
+    } else {
+      // Ajouter un nouvel équipement
+      const newEquipment: Equipment = {
+        id: `eq-${Date.now()}`,
+        ...formData,
+        specifications: {}
+      };
+      storageManager.addEquipment(newEquipment);
+      setEquipments([...equipments, newEquipment]);
+    }
+    
+    setShowModal(false);
+    resetForm();
+  };
 
   const filteredEquipments = equipments.filter(equipment => {
     const matchesSearch = equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,7 +197,7 @@ export default function EquipmentPage() {
                 <input
                   type="text"
                   placeholder="Rechercher un équipement..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 text-black text-black bg-white"
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-64 text-black bg-white"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -125,7 +208,7 @@ export default function EquipmentPage() {
                 <Filter className="absolute left-3 top-2.5 h-5 w-5 text-gray-600" />
                               <select
                 title="Filtrer par statut"
-                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-black text-black bg-white"
+                className="pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
               >
@@ -139,7 +222,10 @@ export default function EquipmentPage() {
             </div>
 
             {/* Bouton d'ajout */}
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
+            <button 
+              onClick={handleAddEquipment}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
               <Plus className="h-5 w-5" />
               <span>Nouvel Équipement</span>
             </button>
@@ -202,12 +288,14 @@ export default function EquipmentPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button 
+                          onClick={() => handleEditEquipment(equipment)}
                           title="Modifier l'équipement"
                           className="text-blue-600 hover:text-blue-900"
                         >
                           <Edit className="h-4 w-4" />
                         </button>
                         <button 
+                          onClick={() => handleDeleteEquipment(equipment.id)}
                           title="Supprimer l'équipement"
                           className="text-red-600 hover:text-red-900"
                         >
@@ -263,6 +351,166 @@ export default function EquipmentPage() {
           </div>
         </div>
       </div>
+
+      {/* Modale pour ajouter/modifier un équipement */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
+                  {editingEquipment ? 'Modifier l\'équipement' : 'Nouvel équipement'}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                  title="Fermer"
+                  aria-label="Fermer la modale"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEquipment}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nom de l'équipement
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type d'équipement
+                    </label>
+                    <select
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.type}
+                      onChange={(e) => setFormData({...formData, type: e.target.value as Equipment['type']})}
+                    >
+                      <option value="heat_exchanger">Échangeur thermique</option>
+                      <option value="cooling_tower">Tour de refroidissement</option>
+                      <option value="water_pump">Pompe à eau</option>
+                      <option value="oil_pump">Pompe à huile</option>
+                      <option value="water_prefilter">Préfiltre eau</option>
+                      <option value="water_filter">Filtre à eau</option>
+                      <option value="oil_filter">Filtre à huile</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Localisation
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Statut
+                    </label>
+                    <select
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.status}
+                      onChange={(e) => setFormData({...formData, status: e.target.value as Equipment['status']})}
+                    >
+                      <option value="operational">Opérationnel</option>
+                      <option value="maintenance">En maintenance</option>
+                      <option value="breakdown">En panne</option>
+                      <option value="offline">Hors ligne</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Fabricant
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.manufacturer}
+                      onChange={(e) => setFormData({...formData, manufacturer: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Modèle
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.model}
+                      onChange={(e) => setFormData({...formData, model: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date d'installation
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.installationDate}
+                      onChange={(e) => setFormData({...formData, installationDate: e.target.value})}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Prochaine maintenance
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black bg-white"
+                      value={formData.nextMaintenanceDate}
+                      onChange={(e) => setFormData({...formData, nextMaintenanceDate: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    {editingEquipment ? 'Mettre à jour' : 'Créer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

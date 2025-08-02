@@ -59,6 +59,7 @@ export interface MaintenanceTask {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   estimatedDuration: number; // en heures
   actualDuration?: number;
+  notes?: string;
 }
 
 export interface Notification {
