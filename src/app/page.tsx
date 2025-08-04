@@ -31,9 +31,9 @@ export default function LoginPage() {
       if (isLogin) {
         // Créer des comptes de démonstration s'ils n'existent pas
         const demoUsers = [
-          { id: 'user-1', username: 'engineer', password: 'password123', role: 'engineer' as const, name: 'Jean Dupont', email: 'engineer@dangote.com' },
-          { id: 'user-2', username: 'maintenance', password: 'password123', role: 'maintenance' as const, name: 'Marie Martin', email: 'maintenance@dangote.com' },
-          { id: 'user-3', username: 'admin', password: 'password123', role: 'admin' as const, name: 'Paul Admin', email: 'admin@dangote.com' }
+          { id: 'user-1', username: 'engineer', password: 'password123', role: 'engineer' as const, name: 'Atangana Georges', email: 'engineer@dangote.com' },
+          { id: 'user-2', username: 'maintenance', password: 'password123', role: 'maintenance' as const, name: 'Marie Owona', email: 'maintenance@dangote.com' },
+          { id: 'user-3', username: 'admin', password: 'password123', role: 'admin' as const, name: 'Paul Mbarga', email: 'admin@dangote.com' }
         ];
 
         // Vérifier les identifiants

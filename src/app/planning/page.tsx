@@ -13,7 +13,8 @@ import {
   Edit,
   Trash2,
   X,
-  Save
+  Save,
+  Printer
 } from 'lucide-react';
 
 interface PlanningTask {
@@ -172,6 +173,276 @@ export default function PlanningPage() {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
       const updatedTasks = tasks.filter(task => task.id !== taskId);
       setTasks(updatedTasks);
+    }
+  };
+
+  const handlePrintWorkOrder = (task: PlanningTask) => {
+    const equipmentName = getEquipmentName(task.equipmentId);
+    const equipmentInfo = equipment.find(eq => eq.id === task.equipmentId);
+    const currentDate = new Date().toLocaleDateString('fr-FR');
+    const currentTime = new Date().toLocaleTimeString('fr-FR');
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Fiche de Maintenance - ${task.title}</title>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            color: #333;
+            line-height: 1.6;
+          }
+          .header { 
+            text-align: center; 
+            border-bottom: 3px solid #dc2626; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px;
+          }
+          .company-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
+          }
+          .document-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+          }
+          .work-order-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+          }
+          .info-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+          }
+          .info-title {
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
+            font-size: 16px;
+          }
+          .info-row {
+            display: flex;
+            margin-bottom: 8px;
+          }
+          .info-label {
+            font-weight: bold;
+            width: 150px;
+          }
+          .priority-urgent { color: #dc2626; font-weight: bold; }
+          .priority-high { color: #ea580c; font-weight: bold; }
+          .priority-medium { color: #d97706; }
+          .priority-low { color: #65a30d; }
+          .safety-section {
+            border: 2px solid #dc2626;
+            padding: 15px;
+            margin: 20px 0;
+            background: #fef2f2;
+          }
+          .permit-section {
+            border: 2px solid #059669;
+            padding: 15px;
+            margin: 20px 0;
+            background: #f0fdf4;
+          }
+          .signature-section {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+          }
+          .signature-box {
+            border: 1px solid #ccc;
+            width: 200px;
+            height: 80px;
+            text-align: center;
+            padding-top: 60px;
+          }
+          .checklist {
+            margin: 20px 0;
+          }
+          .checklist-item {
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+          }
+          .checkbox {
+            width: 15px;
+            height: 15px;
+            border: 1px solid #333;
+            margin-right: 10px;
+            display: inline-block;
+          }
+          @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-logo">DANGOTE CEMENT CAMEROON</div>
+          <div>Usine de Production - Département Maintenance</div>
+          <div class="document-title">FICHE DE MAINTENANCE & PERMIS DE TRAVAIL</div>
+        </div>
+
+        <div class="work-order-info">
+          <div>
+            <strong>N° Ordre de Travail:</strong> OT-${task.id}<br>
+            <strong>Date d'émission:</strong> ${currentDate}<br>
+            <strong>Heure d'émission:</strong> ${currentTime}
+          </div>
+          <div>
+            <strong>Priorité:</strong> <span class="priority-${task.priority}">${task.priority.toUpperCase()}</span><br>
+            <strong>Type:</strong> ${task.type === 'preventive' ? 'Préventive' : 'Corrective'}<br>
+            <strong>Statut:</strong> ${task.status}
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-title">INFORMATIONS ÉQUIPEMENT</div>
+          <div class="info-row">
+            <span class="info-label">Équipement:</span>
+            <span>${equipmentName}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Localisation:</span>
+            <span>${equipmentInfo?.location || 'Non spécifiée'}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Type:</span>
+            <span>${equipmentInfo?.type || 'Non spécifié'}</span>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-title">DÉTAILS DE LA TÂCHE</div>
+          <div class="info-row">
+            <span class="info-label">Titre:</span>
+            <span>${task.title}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Description:</span>
+            <span>${task.description}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Date planifiée:</span>
+            <span>${new Date(task.scheduledDate).toLocaleDateString('fr-FR')}</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Durée estimée:</span>
+            <span>${task.estimatedDuration}h</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Technicien assigné:</span>
+            <span>${task.assignedTechnician}</span>
+          </div>
+        </div>
+
+        <div class="safety-section">
+          <div class="info-title">⚠️ CONSIGNES DE SÉCURITÉ</div>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Port des EPI obligatoire (casque, gants, chaussures de sécurité)
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Vérification de la consignation électrique
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Isolation des sources d'énergie
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Signalisation de la zone de travail
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Vérification des outils et équipements
+            </div>
+          </div>
+        </div>
+
+        <div class="permit-section">
+          <div class="info-title">✅ AUTORISATION DE TRAVAIL</div>
+          <div class="checklist">
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Analyse des risques effectuée
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Personnel qualifié et habilité
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Matériel et outillage vérifiés
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Conditions météorologiques favorables
+            </div>
+            <div class="checklist-item">
+              <span class="checkbox"></span>
+              Communication avec salle de contrôle
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="info-title">EXÉCUTION DES TRAVAUX</div>
+          <div class="info-row">
+            <span class="info-label">Heure de début:</span>
+            <span>____ : ____</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Heure de fin:</span>
+            <span>____ : ____</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Observations:</span>
+          </div>
+          <div style="border: 1px solid #ccc; height: 100px; margin-top: 10px;"></div>
+        </div>
+
+        <div class="signature-section">
+          <div>
+            <div><strong>Demandeur</strong></div>
+            <div class="signature-box">Signature & Date</div>
+          </div>
+          <div>
+            <div><strong>Responsable Maintenance</strong></div>
+            <div class="signature-box">Signature & Date</div>
+          </div>
+          <div>
+            <div><strong>Exécutant</strong></div>
+            <div class="signature-box">Signature & Date</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
+          Document généré automatiquement par le système GMAO - ${currentDate} ${currentTime}
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
     }
   };
 
@@ -566,6 +837,13 @@ export default function PlanningPage() {
                               }`}>
                                 {task.type === 'preventive' ? 'Préventive' : 'Corrective'}
                               </span>
+                              <button
+                                onClick={() => handlePrintWorkOrder(task)}
+                                className="text-green-600 hover:text-green-900 p-1"
+                                title="Imprimer fiche de maintenance"
+                              >
+                                <Printer className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={() => handleEditTask(task)}
                                 className="text-blue-600 hover:text-blue-900 p-1"
