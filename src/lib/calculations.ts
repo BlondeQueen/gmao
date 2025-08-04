@@ -8,6 +8,17 @@ export interface PerformanceMetrics {
   interventionCount: number; // Nombre d'interventions
 }
 
+export interface TheoreticalMetrics {
+  observedMtbf: number; // MTBF calculée à partir des données historiques
+  observedMttr: number; // MTTR calculée à partir des données historiques
+  observedAvailability: number; // Disponibilité calculée à partir des temps d'arrêt
+  theoreticalAvailability: number; // Disponibilité théorique = MTBF/(MTBF+MTTR)
+  consistencyCheck: {
+    isConsistent: boolean; // Vérifie si les données respectent la relation théorique
+    deviation: number; // Écart entre observé et théorique (%)
+  };
+}
+
 export interface EquipmentMetrics extends PerformanceMetrics {
   equipmentId: string;
   equipmentName: string;
@@ -52,6 +63,42 @@ export class PerformanceCalculator {
 
     const operatingTime = totalPeriodHours - totalDowntimeHours;
     return operatingTime / equipmentBreakdowns.length;
+  }
+
+  /**
+   * Calcule la disponibilité théorique basée sur MTBF et MTTR
+   * Formule: Availability = MTBF / (MTBF + MTTR)
+   * Cette méthode respecte la relation théorique de fiabilité
+   */
+  static calculateTheoreticalAvailability(mtbf: number, mttr: number): number {
+    if (mtbf <= 0 || mttr <= 0) {
+      return 0;
+    }
+    return (mtbf / (mtbf + mttr)) * 100;
+  }
+
+  /**
+   * Calcule la MTBF théorique basée sur la disponibilité et MTTR
+   * Formule inversée: MTBF = (Availability × MTTR) / (1 - Availability)
+   */
+  static calculateTheoreticalMTBF(availability: number, mttr: number): number {
+    if (availability <= 0 || availability >= 100 || mttr <= 0) {
+      return 0;
+    }
+    const availabilityDecimal = availability / 100;
+    return (availabilityDecimal * mttr) / (1 - availabilityDecimal);
+  }
+
+  /**
+   * Calcule la MTTR théorique basée sur la disponibilité et MTBF
+   * Formule inversée: MTTR = MTBF × (1 - Availability) / Availability
+   */
+  static calculateTheoreticalMTTR(availability: number, mtbf: number): number {
+    if (availability <= 0 || availability >= 100 || mtbf <= 0) {
+      return 0;
+    }
+    const availabilityDecimal = availability / 100;
+    return (mtbf * (1 - availabilityDecimal)) / availabilityDecimal;
   }
 
   /**
@@ -182,6 +229,40 @@ export class PerformanceCalculator {
       availability,
       interventionCount,
       period: `${periodStart.toLocaleDateString()} - ${periodEnd.toLocaleDateString()}`
+    };
+  }
+
+  /**
+   * Calcule les métriques avec vérification de cohérence théorique
+   * Vérifie si la relation Availability = MTBF/(MTBF+MTTR) est respectée
+   */
+  static calculateTheoreticalEquipmentMetrics(
+    equipment: Equipment,
+    breakdowns: Breakdown[], 
+    maintenanceTasks: MaintenanceTask[],
+    periodStart: Date, 
+    periodEnd: Date
+  ): TheoreticalMetrics {
+    const observedMtbf = this.calculateMTBF(equipment.id, breakdowns, periodStart, periodEnd);
+    const observedMttr = this.calculateMTTR(equipment.id, breakdowns, periodStart, periodEnd);
+    const observedAvailability = this.calculateAvailability(equipment.id, breakdowns, maintenanceTasks, periodStart, periodEnd);
+    
+    // Calcul de la disponibilité théorique basée sur MTBF et MTTR
+    const theoreticalAvailability = this.calculateTheoreticalAvailability(observedMtbf, observedMttr);
+    
+    // Vérification de cohérence
+    const deviation = Math.abs(observedAvailability - theoreticalAvailability);
+    const isConsistent = deviation <= 5; // Seuil de 5% d'écart acceptable
+    
+    return {
+      observedMtbf,
+      observedMttr,
+      observedAvailability,
+      theoreticalAvailability,
+      consistencyCheck: {
+        isConsistent,
+        deviation
+      }
     };
   }
 
