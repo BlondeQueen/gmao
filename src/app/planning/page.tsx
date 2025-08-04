@@ -187,98 +187,86 @@ export default function PlanningPage() {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Fiche de Maintenance - ${task.title}</title>
+        <title>Job Safety Analysis - ${task.title}</title>
         <style>
           body { 
             font-family: Arial, sans-serif; 
-            margin: 20px; 
-            color: #333;
-            line-height: 1.6;
+            margin: 15px; 
+            color: #000;
+            font-size: 12px;
+            line-height: 1.2;
           }
           .header { 
             text-align: center; 
-            border-bottom: 3px solid #dc2626; 
-            padding-bottom: 20px; 
-            margin-bottom: 30px;
-          }
-          .company-logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #dc2626;
-            margin-bottom: 10px;
+            border-bottom: 2px solid #000; 
+            padding-bottom: 10px; 
+            margin-bottom: 15px;
           }
           .document-title {
-            font-size: 20px;
+            font-size: 16px;
             font-weight: bold;
-            margin: 10px 0;
+            margin: 5px 0;
           }
-          .work-order-info {
+          .header-info {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
-          }
-          .info-section {
-            background: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-          }
-          .info-title {
-            font-weight: bold;
-            color: #dc2626;
+            font-size: 11px;
             margin-bottom: 10px;
-            font-size: 16px;
           }
-          .info-row {
-            display: flex;
-            margin-bottom: 8px;
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            border: 1px solid #000;
           }
-          .info-label {
+          th, td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 10px;
+          }
+          th {
+            background-color: #f0f0f0;
             font-weight: bold;
-            width: 150px;
+            text-align: center;
           }
-          .priority-urgent { color: #dc2626; font-weight: bold; }
-          .priority-high { color: #ea580c; font-weight: bold; }
-          .priority-medium { color: #d97706; }
-          .priority-low { color: #65a30d; }
-          .safety-section {
-            border: 2px solid #dc2626;
-            padding: 15px;
-            margin: 20px 0;
-            background: #fef2f2;
+          .section-title {
+            background-color: #e0e0e0;
+            font-weight: bold;
+            text-align: center;
+            padding: 5px;
           }
-          .permit-section {
-            border: 2px solid #059669;
-            padding: 15px;
-            margin: 20px 0;
-            background: #f0fdf4;
+          .equipment-row {
+            height: 25px;
+          }
+          .work-step {
+            width: 25%;
+          }
+          .hazards {
+            width: 25%;
+          }
+          .controls {
+            width: 25%;
+          }
+          .permits {
+            width: 25%;
           }
           .signature-section {
-            margin-top: 40px;
-            display: flex;
-            justify-content: space-between;
+            margin-top: 20px;
           }
-          .signature-box {
-            border: 1px solid #ccc;
-            width: 200px;
-            height: 80px;
+          .signature-table {
+            width: 100%;
+          }
+          .signature-table td {
+            height: 40px;
             text-align: center;
-            padding-top: 60px;
           }
-          .checklist {
-            margin: 20px 0;
+          .checkbox-list {
+            font-size: 9px;
           }
-          .checklist-item {
-            margin: 10px 0;
-            display: flex;
-            align-items: center;
-          }
-          .checkbox {
-            width: 15px;
-            height: 15px;
-            border: 1px solid #333;
-            margin-right: 10px;
-            display: inline-block;
+          .small-text {
+            font-size: 9px;
           }
           @media print {
             body { margin: 0; }
@@ -288,149 +276,173 @@ export default function PlanningPage() {
       </head>
       <body>
         <div class="header">
-          <div class="company-logo">DANGOTE CEMENT CAMEROON</div>
-          <div>Usine de Production - Département Maintenance</div>
-          <div class="document-title">FICHE DE MAINTENANCE & PERMIS DE TRAVAIL</div>
-        </div>
-
-        <div class="work-order-info">
-          <div>
-            <strong>N° Ordre de Travail:</strong> OT-${task.id}<br>
-            <strong>Date d'émission:</strong> ${currentDate}<br>
-            <strong>Heure d'émission:</strong> ${currentTime}
-          </div>
-          <div>
-            <strong>Priorité:</strong> <span class="priority-${task.priority}">${task.priority.toUpperCase()}</span><br>
-            <strong>Type:</strong> ${task.type === 'preventive' ? 'Préventive' : 'Corrective'}<br>
-            <strong>Statut:</strong> ${task.status}
-          </div>
-        </div>
-
-        <div class="info-section">
-          <div class="info-title">INFORMATIONS ÉQUIPEMENT</div>
-          <div class="info-row">
-            <span class="info-label">Équipement:</span>
-            <span>${equipmentName}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Localisation:</span>
-            <span>${equipmentInfo?.location || 'Non spécifiée'}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Type:</span>
-            <span>${equipmentInfo?.type || 'Non spécifié'}</span>
-          </div>
-        </div>
-
-        <div class="info-section">
-          <div class="info-title">DÉTAILS DE LA TÂCHE</div>
-          <div class="info-row">
-            <span class="info-label">Titre:</span>
-            <span>${task.title}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Description:</span>
-            <span>${task.description}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Date planifiée:</span>
-            <span>${new Date(task.scheduledDate).toLocaleDateString('fr-FR')}</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Durée estimée:</span>
-            <span>${task.estimatedDuration}h</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Technicien assigné:</span>
-            <span>${task.assignedTechnician}</span>
-          </div>
-        </div>
-
-        <div class="safety-section">
-          <div class="info-title">⚠️ CONSIGNES DE SÉCURITÉ</div>
-          <div class="checklist">
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Port des EPI obligatoire (casque, gants, chaussures de sécurité)
+          <div class="document-title">JOB SAFETY ANALYSIS / ANALYSE DES RISQUES AVANT INTERVENTION</div>
+          <div class="header-info">
+            <div>
+              <strong>Date:</strong> ${currentDate}<br>
+              <strong>Task/Tâche:</strong> ${task.title}
             </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Vérification de la consignation électrique
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Isolation des sources d'énergie
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Signalisation de la zone de travail
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Vérification des outils et équipements
+            <div>
+              <strong>Job Location / Lieu d'exécution:</strong> ${equipmentInfo?.location || ''}<br>
+              <strong>Supervisor/Personnel présents présent:</strong> ${task.assignedTechnician}
             </div>
           </div>
         </div>
 
-        <div class="permit-section">
-          <div class="info-title">✅ AUTORISATION DE TRAVAIL</div>
-          <div class="checklist">
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Analyse des risques effectuée
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Personnel qualifié et habilité
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Matériel et outillage vérifiés
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Conditions météorologiques favorables
-            </div>
-            <div class="checklist-item">
-              <span class="checkbox"></span>
-              Communication avec salle de contrôle
-            </div>
-          </div>
-        </div>
+        <!-- Section Équipements de Protection -->
+        <table>
+          <tr>
+            <th colspan="8" class="section-title">PERSONAL PROTECTIVE EQUIPMENT / EPI / ÉQUIPEMENTS DE PROTECTION INDIVIDUELLE</th>
+          </tr>
+          <tr>
+            <th class="small-text">Safety shoes<br>X Chaussures sécurité</th>
+            <th class="small-text">Fall arrest equipment<br>X Dispositif anti-chute</th>
+            <th class="small-text">HAZARD IDENTIFICATION / IDENTIFICATION DES DANGERS</th>
+            <th class="small-text">Unprotected edge<br>Bord non protégé</th>
+            <th class="small-text">WORK PERMITS REQUIRED / PERMIS DE TRAVAIL NÉCESSAIRES</th>
+          </tr>
+          <tr>
+            <td class="checkbox-list">☐ Safety shoes<br>☐ Dust mask, filter</td>
+            <td class="checkbox-list">☐ Fall arrest equipment<br>☐ Safety harness/belt</td>
+            <td class="checkbox-list">☐ Structural<br>☐ Slip/trip/falls</td>
+            <td class="checkbox-list">☐ Liquid<br>☐ Chemicals</td>
+            <td class="checkbox-list">☐ Line Clearance / Energy isolation<br>☐ Hot Work</td>
+          </tr>
+          <tr>
+            <td class="checkbox-list">☐ Work uniform<br>☐ High visibility vest</td>
+            <td class="checkbox-list">☐ Safety gloves (type)<br>☐ Safety helmet</td>
+            <td class="checkbox-list">☐ Fragile roof<br>☐ Electrical hazard</td>
+            <td class="checkbox-list">☐ Burnt surfaces<br>☐ High / low temp</td>
+            <td class="checkbox-list">☐ Confined Space Permit<br>☐ Work at Height</td>
+          </tr>
+          <tr>
+            <td class="checkbox-list">☐ Safety goggles / eye<br>protection</td>
+            <td class="checkbox-list">☐ Others<br>Autres</td>
+            <td class="checkbox-list">☐ Falling objects<br>☐ Ionising radiation<br>☐ Noise<br>☐ Steam</td>
+            <td class="checkbox-list">☐ High / low pressure<br>☐ Electricity<br>☐ Moving parts</td>
+            <td class="checkbox-list">☐ Excavation Permit</td>
+          </tr>
+        </table>
 
-        <div class="info-section">
-          <div class="info-title">EXÉCUTION DES TRAVAUX</div>
-          <div class="info-row">
-            <span class="info-label">Heure de début:</span>
-            <span>____ : ____</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Heure de fin:</span>
-            <span>____ : ____</span>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Observations:</span>
-          </div>
-          <div style="border: 1px solid #ccc; height: 100px; margin-top: 10px;"></div>
-        </div>
+        <!-- Section Analyse des étapes de travail -->
+        <table>
+          <tr>
+            <th class="work-step">Job Step / Étape du travail</th>
+            <th class="hazards">How is Work carried (what? What How?)<br>Méthode de travail ( Qui? Comment? À l'aide de quoi?)</th>
+            <th class="controls">Existing or potential Hazards / risks<br>Dangers ou risques potentiels ou existants</th>
+            <th class="permits">Controls<br>Mesures préventives</th>
+          </tr>
+          <tr>
+            <td style="height: 120px;">
+              <strong>Inspection du lieu de travail</strong><br><br>
+              Le technicien vérifie l'état des points et huile.
+            </td>
+            <td style="height: 120px;">
+              Rassemblement des clés nécessaires pour effectuer le travail et la mobilisation du personnel nécessaire
+            </td>
+            <td style="height: 120px;">
+              - Glissades<br>
+              - Chutes<br>
+              - Écoulement de liquide
+            </td>
+            <td style="height: 120px;">
+              - EPI et nettoyer la zone de fuite d'huile<br>
+              - Port des gants<br>
+              - Port des chaussures de sécurité
+            </td>
+          </tr>
+          <tr>
+            <td style="height: 120px;">
+              <strong>Consignation (LLO)</strong><br><br>
+              Après avoir identifié l'équipement il faut se diriger à la salle électrique à fin de faire un LOTO
+            </td>
+            <td style="height: 120px;">
+              - Glissades<br>
+              - Chutes<br>
+              - Frottements
+            </td>
+            <td style="height: 120px;">
+              - EPI et nettoyer la zone de fuite d'huile<br>
+              - Port des gants<br>
+              - Port des chaussures de sécurité
+            </td>
+            <td style="height: 120px;">
+              - Port des gants<br>
+              - Port des chaussures de sécurité<br>
+              - EPI et nettoyer la zone de fuite d'huile<br>
+              - Port des chaussures de sécurité
+            </td>
+          </tr>
+          <tr>
+            <td style="height: 120px;">
+              <strong>Exécution du Travail</strong><br><br>
+              Effectuer les tâches suivants à l'aide des différents clé nécessaires!<br>
+              - Desserrage des raccord<br>
+              - Vérification de l'étanchéité<br>
+              - Application de la Loctite<br>
+              - Ressemlage des raccord
+            </td>
+            <td style="height: 120px;">
+              - Risk de fuites sur pression<br>
+              - Peut atteint non recommandé<br>
+              - Enfoncement de la loctite rendant la surface glissante
+            </td>
+            <td style="height: 120px;">
+              - Port des gants amener<br>
+              - Port des chaussures de sécurité<br>
+              - Masque de protection<br>
+              - Les lunettes de sécurité<br>
+              - Faire attention lors de l'ouverture de la LOCTITE et éviter de laisser tomber la LOCTITE<br>
+              - Port des chaussures de sécurité
+            </td>
+          </tr>
+          <tr>
+            <td style="height: 120px;">
+              <strong>Housekeeping</strong><br><br>
+              Après l'activité de maintenance nettoyer l'endroit où le travail à été effectué
+            </td>
+            <td style="height: 120px;">
+              - Glissades<br>
+              - Chutes<br>
+              - Étalage des outils sur une surface de travail encombrée pouvant tout avec difficulté et désorganité
+            </td>
+            <td style="height: 120px;">
+              - Port des gants à main<br>
+              - Tête ou casque de protection<br>
+              - Organisation de l'espace de travail et vérifier toit de la propreté
+            </td>
+          </tr>
+        </table>
 
+        <!-- Section Signatures -->
         <div class="signature-section">
-          <div>
-            <div><strong>Demandeur</strong></div>
-            <div class="signature-box">Signature & Date</div>
-          </div>
-          <div>
-            <div><strong>Responsable Maintenance</strong></div>
-            <div class="signature-box">Signature & Date</div>
-          </div>
-          <div>
-            <div><strong>Exécutant</strong></div>
-            <div class="signature-box">Signature & Date</div>
-          </div>
+          <table class="signature-table">
+            <tr>
+              <th colspan="3">NAMES / NOMS</th>
+              <th>Signature</th>
+              <th colspan="2">APPROVAL / VALIDATION</th>
+            </tr>
+            <tr>
+              <td style="width: 20%"></td>
+              <td style="width: 20%"></td>
+              <td style="width: 20%"></td>
+              <td style="width: 15%"></td>
+              <td><strong>Supervisor</strong></td>
+              <td><strong>HSE Manager In Charge</strong></td>
+            </tr>
+            <tr>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td><strong>Date</strong><br><strong>Name /</strong><br><strong>Signature</strong></td>
+              <td></td>
+            </tr>
+          </table>
         </div>
 
-        <div style="margin-top: 30px; text-align: center; font-size: 12px; color: #666;">
-          Document généré automatiquement par le système GMAO - ${currentDate} ${currentTime}
+        <div style="margin-top: 20px; text-align: center; font-size: 10px;">
+          <strong>Tâche:</strong> ${task.title} | <strong>Équipement:</strong> ${equipmentName} | <strong>Date planifiée:</strong> ${new Date(task.scheduledDate).toLocaleDateString('fr-FR')} | <strong>Durée:</strong> ${task.estimatedDuration}h
         </div>
       </body>
       </html>
