@@ -17,13 +17,13 @@ import {
   ArrowDown,
   Minus
 } from 'lucide-react';
-import StorageManager, { type ThermalReading, type Equipment } from '@/lib/storage';
+import StorageManager, { type ThermalReading, type Equipment, type User } from '@/lib/storage';
 import { HeatExchangerAnalyzer, type HeatExchangerEfficiency, type ThermalData } from '@/lib/calculations';
 import Navigation from '@/components/Navigation';
 
 export default function EfficacitePage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [heatExchangers, setHeatExchangers] = useState<Equipment[]>([]);
   const [efficiencyData, setEfficiencyData] = useState<HeatExchangerEfficiency[]>([]);
   const [thermalReadings, setThermalReadings] = useState<ThermalReading[]>([]);

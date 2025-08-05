@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { type User } from '@/lib/storage';
 import { 
   Home, 
   Calendar, 
@@ -10,7 +11,7 @@ import {
   Settings, 
   Wrench, 
   AlertTriangle,
-  User,
+  User as UserIcon,
   Thermometer
 } from 'lucide-react';
 
@@ -23,14 +24,11 @@ const navigation = [
   { name: 'Équipements', href: '/equipment', icon: Settings },
   { name: 'Maintenance', href: '/maintenance', icon: Wrench },
   { name: 'Alertes', href: '/alerte', icon: AlertTriangle },
-  { name: 'Profil', href: '/profil', icon: User },
+  { name: 'Profil', href: '/profil', icon: UserIcon },
 ];
 
 interface NavigationProps {
-  currentUser?: {
-    name: string;
-    role: string;
-  };
+  currentUser?: User | null;
   onLogout?: () => void;
 }
 

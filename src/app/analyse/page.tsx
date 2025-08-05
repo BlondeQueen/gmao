@@ -14,13 +14,13 @@ import {
 } from 'lucide-react';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
-import StorageManager, { type Equipment, type MaintenanceTask, type Breakdown } from '@/lib/storage';
+import StorageManager, { type Equipment, type MaintenanceTask, type Breakdown, type User } from '@/lib/storage';
 import PerformanceCalculator from '@/lib/calculations';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title);
 
 export default function AnalysePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [breakdowns, setBreakdowns] = useState<Breakdown[]>([]);

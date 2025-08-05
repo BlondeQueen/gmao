@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
+import { type User } from '@/lib/storage';
 import { 
   Calendar, 
   ChevronLeft, 
@@ -44,7 +45,7 @@ type ViewMode = 'month' | 'week' | 'day';
 
 export default function PlanningPage() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [tasks, setTasks] = useState<PlanningTask[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
