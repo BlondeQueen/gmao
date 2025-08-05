@@ -164,8 +164,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Navigation currentUser={user} onLogout={handleLogout} />
 
-      {/* Contenu principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{/* Métriques globales */}
+      {/* Contenu principal avec padding pour sidebar */}
+      <div className="lg:pl-64">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Métriques globales */}
         {globalMetrics && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
@@ -392,7 +394,8 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

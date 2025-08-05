@@ -182,8 +182,10 @@ export default function EfficacitePage() {
     <div className="min-h-screen bg-gray-50">
       <Navigation currentUser={user} onLogout={handleLogout} />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* En-tête */}
+      {/* Contenu principal avec padding pour sidebar */}
+      <div className="lg:pl-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* En-tête */}
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
@@ -287,7 +289,7 @@ export default function EfficacitePage() {
                   <div className="text-center">
                     <div className="flex items-center justify-center mb-1">
                       {getTrendIcon(efficiency.degradationRate)}
-                      <span className="text-lg font-semibold ml-2">
+                      <span className="text-lg font-semibold ml-2 text-gray-900">
                         {Math.abs(efficiency.degradationRate).toFixed(1)}%/mois
                       </span>
                     </div>
@@ -441,6 +443,7 @@ export default function EfficacitePage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
