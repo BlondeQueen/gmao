@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Navigation from '@/components/Navigation';
 import { 
-  User, 
+  User as UserIcon, 
   Settings,
   Shield,
   Bell,
@@ -94,29 +95,25 @@ export default function ProfilPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <User className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
-                <p className="text-gray-600">Dangote Cement Cameroon</p>
+      <Navigation currentUser={user} onLogout={handleLogout} />
+      <div className="lg:pl-64">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <UserIcon className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Mon Profil</h1>
+                  <p className="text-gray-600">Dangote Cement Cameroon</p>
+                </div>
               </div>
             </div>
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Retour au Dashboard
-            </button>
           </div>
         </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Contenu principal */}
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profil utilisateur */}
           <div className="lg:col-span-2">
@@ -136,7 +133,7 @@ export default function ProfilPage() {
                 {/* Photo de profil */}
                 <div className="flex items-center space-x-6">
                   <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
-                    <User className="h-12 w-12 text-blue-600" />
+                    <UserIcon className="h-12 w-12 text-blue-600" />
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{user?.name}</h3>
@@ -383,6 +380,7 @@ export default function ProfilPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

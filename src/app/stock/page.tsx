@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Navigation from '@/components/Navigation';
 import { 
   Package, 
   Plus, 
@@ -14,7 +15,7 @@ import {
   Filter,
   XCircle
 } from 'lucide-react';
-import StorageManager, { type Equipment } from '@/lib/storage';
+import StorageManager, { type Equipment, type User } from '@/lib/storage';
 
 interface StockItem {
   id: string;
@@ -32,6 +33,7 @@ interface StockItem {
 }
 
 export default function StockPage() {
+  const [user, setUser] = useState<User | null>(null);
   const [stockItems, setStockItems] = useState<StockItem[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +58,11 @@ export default function StockPage() {
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
 
+  const handleLogout = () => {
+    storageManager.logout();
+    router.push('/');
+  };
+
   useEffect(() => {
     // Vérifier l'authentification
     const currentUser = storageManager.getCurrentUser();
@@ -63,6 +70,8 @@ export default function StockPage() {
       router.push('/');
       return;
     }
+    
+    setUser(currentUser);
 
     // Charger les équipements
     const equipmentsData = storageManager.getEquipments();
@@ -290,25 +299,21 @@ export default function StockPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Package className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Gestion du Stock</h1>
-                <p className="text-gray-600">Dangote Cement Cameroon</p>
+      <Navigation currentUser={user} onLogout={handleLogout} />
+      <div className="lg:pl-64">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Package className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Gestion du Stock</h1>
+                  <p className="text-gray-600">Dangote Cement Cameroon</p>
+                </div>
               </div>
             </div>
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Retour au Dashboard
-            </button>
           </div>
-        </div>
       </div>
 
       {/* Contenu principal */}
@@ -743,6 +748,7 @@ export default function StockPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

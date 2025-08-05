@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Navigation from '@/components/Navigation';
 import { 
   Bell, 
   AlertTriangle,
@@ -11,14 +12,15 @@ import {
   X,
   Filter,
   Clock,
-  User,
+  User as UserIcon,
   Settings,
   Plus,
   XCircle
 } from 'lucide-react';
-import StorageManager, { type Equipment, type MaintenanceTask, type Breakdown, type Notification } from '@/lib/storage';
+import StorageManager, { type Equipment, type MaintenanceTask, type Breakdown, type Notification, type User } from '@/lib/storage';
 
 export default function AlertePage() {
+  const [user, setUser] = useState<User | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
@@ -40,6 +42,11 @@ export default function AlertePage() {
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
 
+  const handleLogout = () => {
+    storageManager.logout();
+    router.push('/');
+  };
+
   useEffect(() => {
     // Vérifier l'authentification
     const currentUser = storageManager.getCurrentUser();
@@ -47,6 +54,8 @@ export default function AlertePage() {
       router.push('/');
       return;
     }
+    
+    setUser(currentUser);
 
     // Charger les données
     const notificationsData = storageManager.getNotifications();
@@ -298,37 +307,33 @@ export default function AlertePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Bell className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Centre d'Alertes</h1>
-                <p className="text-gray-600">Dangote Cement Cameroon</p>
+      <Navigation currentUser={user} onLogout={handleLogout} />
+      <div className="lg:pl-64">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Bell className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Centre d'Alertes</h1>
+                  <p className="text-gray-600">Dangote Cement Cameroon</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button 
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <Settings className="h-5 w-5" />
-                <span>Paramètres</span>
-              </button>
-              <button 
-                onClick={() => router.push('/dashboard')}
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Retour au Dashboard
-              </button>
+              <div className="flex items-center space-x-4">
+                <button 
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  <Settings className="h-5 w-5" />
+                  <span>Paramètres</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Contenu principal */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistiques rapides */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
           <div className="bg-white rounded-lg shadow-sm p-4">
@@ -699,6 +704,7 @@ export default function AlertePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
