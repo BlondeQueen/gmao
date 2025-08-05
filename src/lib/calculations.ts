@@ -25,6 +25,35 @@ export interface EquipmentMetrics extends PerformanceMetrics {
   period: string;
 }
 
+// Nouvelles interfaces pour l'efficacité des échangeurs de chaleur
+export interface ThermalData {
+  timestamp: string;
+  hotInletTemp: number;    // Température entrée fluide chaud (°C)
+  hotOutletTemp: number;   // Température sortie fluide chaud (°C)
+  coldInletTemp: number;   // Température entrée fluide froid (°C)
+  coldOutletTemp: number;  // Température sortie fluide froid (°C)
+  flowRateHot: number;     // Débit fluide chaud (kg/s)
+  flowRateCold: number;    // Débit fluide froid (kg/s)
+}
+
+export interface HeatExchangerEfficiency {
+  equipmentId: string;
+  equipmentName: string;
+  currentEfficiency: number;        // Efficacité actuelle (%)
+  designEfficiency: number;         // Efficacité de conception (%)
+  degradationRate: number;          // Taux de dégradation (%/mois)
+  predictedMaintenanceDate: string; // Date de maintenance prédite
+  recommendedAction: 'none' | 'monitoring' | 'cleaning' | 'maintenance' | 'replacement';
+  alertLevel: 'green' | 'yellow' | 'orange' | 'red';
+  lastCalculationDate: string;
+  thermodynamicData: {
+    actualHeatTransfer: number;     // Transfert thermique réel (kW)
+    maxPossibleHeatTransfer: number; // Transfert thermique maximum théorique (kW)
+    ntu: number;                    // Number of Transfer Units
+    effectiveness: number;          // Efficacité thermodynamique
+  };
+}
+
 export class PerformanceCalculator {
   
   /**
@@ -351,6 +380,235 @@ export class PerformanceCalculator {
     
     if (Math.abs(change) < threshold) return 'stable';
     return change > 0 ? 'up' : 'down';
+  }
+}
+
+/**
+ * Classe pour l'analyse de l'efficacité des échangeurs de chaleur
+ * Calcule l'efficacité thermique et prédit les besoins de maintenance
+ */
+export class HeatExchangerAnalyzer {
+  
+  /**
+   * Calcule l'efficacité d'un échangeur de chaleur
+   * Méthode ε-NTU (Effectiveness-Number of Transfer Units)
+   */
+  static calculateEffectiveness(thermalData: ThermalData): number {
+    const { hotInletTemp, hotOutletTemp, coldInletTemp, coldOutletTemp } = thermalData;
+    
+    // Calcul de l'efficacité basé sur le fluide avec la plus petite capacité thermique
+    const hotSideDelta = hotInletTemp - hotOutletTemp;
+    const coldSideDelta = coldOutletTemp - coldInletTemp;
+    const maxPossibleDelta = hotInletTemp - coldInletTemp;
+    
+    if (maxPossibleDelta <= 0) return 0;
+    
+    // L'efficacité est basée sur le transfert thermique réel vs maximum possible
+    const actualEfficiency = Math.max(hotSideDelta, coldSideDelta) / maxPossibleDelta;
+    
+    return Math.min(100, Math.max(0, actualEfficiency * 100));
+  }
+
+  /**
+   * Calcule le transfert thermique réel (en kW)
+   */
+  static calculateActualHeatTransfer(thermalData: ThermalData): number {
+    const { hotInletTemp, hotOutletTemp, flowRateHot } = thermalData;
+    const cp = 4.18; // Capacité thermique spécifique de l'eau (kJ/kg·K)
+    
+    const deltaT = hotInletTemp - hotOutletTemp;
+    const heatTransfer = flowRateHot * cp * deltaT;
+    
+    return heatTransfer; // kW
+  }
+
+  /**
+   * Calcule le transfert thermique maximum théorique
+   */
+  static calculateMaxHeatTransfer(thermalData: ThermalData): number {
+    const { hotInletTemp, coldInletTemp, flowRateHot, flowRateCold } = thermalData;
+    const cp = 4.18; // Capacité thermique spécifique de l'eau (kJ/kg·K)
+    
+    const minFlowRate = Math.min(flowRateHot, flowRateCold);
+    const maxDeltaT = hotInletTemp - coldInletTemp;
+    
+    return minFlowRate * cp * maxDeltaT; // kW
+  }
+
+  /**
+   * Évalue l'état d'un échangeur et recommande des actions
+   */
+  static evaluateHeatExchanger(
+    equipment: Equipment,
+    thermalDataHistory: ThermalData[],
+    designEfficiency: number = 85 // Efficacité de conception par défaut
+  ): HeatExchangerEfficiency {
+    
+    if (thermalDataHistory.length === 0) {
+      return this.createDefaultEfficiencyResult(equipment, designEfficiency);
+    }
+
+    // Calcul de l'efficacité actuelle (moyenne des 10 dernières mesures)
+    const recentData = thermalDataHistory.slice(-10);
+    const efficiencies = recentData.map(data => this.calculateEffectiveness(data));
+    const currentEfficiency = efficiencies.reduce((sum, eff) => sum + eff, 0) / efficiencies.length;
+
+    // Calcul du taux de dégradation (sur les 30 derniers jours)
+    const degradationRate = this.calculateDegradationRate(thermalDataHistory);
+
+    // Calcul des données thermodynamiques
+    const latestData = thermalDataHistory[thermalDataHistory.length - 1];
+    const actualHeatTransfer = this.calculateActualHeatTransfer(latestData);
+    const maxPossibleHeatTransfer = this.calculateMaxHeatTransfer(latestData);
+
+    // Détermination du niveau d'alerte et actions recommandées
+    const { alertLevel, recommendedAction } = this.determineAlertLevel(currentEfficiency, designEfficiency, degradationRate);
+
+    // Prédiction de la date de maintenance
+    const predictedMaintenanceDate = this.predictMaintenanceDate(currentEfficiency, degradationRate, designEfficiency);
+
+    return {
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+      currentEfficiency: Math.round(currentEfficiency * 100) / 100,
+      designEfficiency,
+      degradationRate: Math.round(degradationRate * 100) / 100,
+      predictedMaintenanceDate,
+      recommendedAction,
+      alertLevel,
+      lastCalculationDate: new Date().toISOString(),
+      thermodynamicData: {
+        actualHeatTransfer: Math.round(actualHeatTransfer * 100) / 100,
+        maxPossibleHeatTransfer: Math.round(maxPossibleHeatTransfer * 100) / 100,
+        ntu: this.calculateNTU(latestData),
+        effectiveness: Math.round(currentEfficiency * 100) / 100
+      }
+    };
+  }
+
+  /**
+   * Calcule le taux de dégradation de l'efficacité (%/mois)
+   */
+  private static calculateDegradationRate(thermalDataHistory: ThermalData[]): number {
+    if (thermalDataHistory.length < 2) return 0;
+
+    // Prendre les données des 3 derniers mois pour calculer la tendance
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+    const recentData = thermalDataHistory.filter(data => 
+      new Date(data.timestamp) >= threeMonthsAgo
+    );
+
+    if (recentData.length < 2) return 0;
+
+    // Calculer l'efficacité pour chaque point
+    const efficiencyPoints = recentData.map(data => ({
+      date: new Date(data.timestamp),
+      efficiency: this.calculateEffectiveness(data)
+    }));
+
+    // Régression linéaire simple pour calculer la tendance
+    const firstPoint = efficiencyPoints[0];
+    const lastPoint = efficiencyPoints[efficiencyPoints.length - 1];
+    
+    const timeDiffMonths = (lastPoint.date.getTime() - firstPoint.date.getTime()) / (1000 * 60 * 60 * 24 * 30);
+    const efficiencyDiff = lastPoint.efficiency - firstPoint.efficiency;
+
+    return timeDiffMonths > 0 ? efficiencyDiff / timeDiffMonths : 0;
+  }
+
+  /**
+   * Détermine le niveau d'alerte et l'action recommandée
+   */
+  private static determineAlertLevel(
+    currentEfficiency: number, 
+    designEfficiency: number, 
+    degradationRate: number
+  ): { alertLevel: 'green' | 'yellow' | 'orange' | 'red', recommendedAction: 'none' | 'monitoring' | 'cleaning' | 'maintenance' | 'replacement' } {
+    
+    const efficiencyRatio = currentEfficiency / designEfficiency;
+    
+    // Efficacité très dégradée (< 60% de l'efficacité de conception)
+    if (efficiencyRatio < 0.6) {
+      return { alertLevel: 'red', recommendedAction: 'replacement' };
+    }
+    
+    // Efficacité dégradée (60-75% de l'efficacité de conception)
+    if (efficiencyRatio < 0.75) {
+      return { alertLevel: 'orange', recommendedAction: 'maintenance' };
+    }
+    
+    // Efficacité en baisse (75-85% de l'efficacité de conception)
+    if (efficiencyRatio < 0.85) {
+      return { alertLevel: 'yellow', recommendedAction: 'cleaning' };
+    }
+    
+    // Dégradation rapide détectée (> 2% par mois)
+    if (degradationRate < -2) {
+      return { alertLevel: 'yellow', recommendedAction: 'monitoring' };
+    }
+    
+    // Efficacité normale
+    return { alertLevel: 'green', recommendedAction: 'none' };
+  }
+
+  /**
+   * Prédit la date de maintenance basée sur le taux de dégradation
+   */
+  private static predictMaintenanceDate(
+    currentEfficiency: number, 
+    degradationRate: number, 
+    designEfficiency: number
+  ): string {
+    
+    const maintenanceThreshold = designEfficiency * 0.75; // 75% de l'efficacité de conception
+    
+    if (degradationRate >= 0 || currentEfficiency <= maintenanceThreshold) {
+      // Si pas de dégradation ou déjà en dessous du seuil
+      return new Date().toISOString().split('T')[0];
+    }
+    
+    const monthsUntilMaintenance = (currentEfficiency - maintenanceThreshold) / Math.abs(degradationRate);
+    const maintenanceDate = new Date();
+    maintenanceDate.setMonth(maintenanceDate.getMonth() + Math.ceil(monthsUntilMaintenance));
+    
+    return maintenanceDate.toISOString().split('T')[0];
+  }
+
+  /**
+   * Calcule le NTU (Number of Transfer Units)
+   */
+  private static calculateNTU(thermalData: ThermalData): number {
+    const effectiveness = this.calculateEffectiveness(thermalData) / 100;
+    
+    // Approximation pour un échangeur à contre-courant
+    if (effectiveness >= 0.99) return 10; // Limite pratique
+    
+    return -Math.log(1 - effectiveness);
+  }
+
+  /**
+   * Crée un résultat par défaut si pas de données disponibles
+   */
+  private static createDefaultEfficiencyResult(equipment: Equipment, designEfficiency: number): HeatExchangerEfficiency {
+    return {
+      equipmentId: equipment.id,
+      equipmentName: equipment.name,
+      currentEfficiency: designEfficiency,
+      designEfficiency,
+      degradationRate: 0,
+      predictedMaintenanceDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Dans 3 mois
+      recommendedAction: 'monitoring',
+      alertLevel: 'green',
+      lastCalculationDate: new Date().toISOString(),
+      thermodynamicData: {
+        actualHeatTransfer: 0,
+        maxPossibleHeatTransfer: 0,
+        ntu: 0,
+        effectiveness: designEfficiency
+      }
+    };
   }
 }
 

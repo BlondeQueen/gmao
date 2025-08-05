@@ -33,6 +33,20 @@ export interface Sensor {
   maxThreshold?: number;
 }
 
+export interface ThermalReading {
+  id: string;
+  equipmentId: string;
+  timestamp: string;
+  hotInletTemp: number;    // Température entrée fluide chaud (°C)
+  hotOutletTemp: number;   // Température sortie fluide chaud (°C)
+  coldInletTemp: number;   // Température entrée fluide froid (°C)
+  coldOutletTemp: number;  // Température sortie fluide froid (°C)
+  flowRateHot: number;     // Débit fluide chaud (kg/s)
+  flowRateCold: number;    // Débit fluide froid (kg/s)
+  efficiency?: number;     // Efficacité calculée (%)
+  recordedBy: string;      // Utilisateur qui a enregistré la mesure
+}
+
 export interface Breakdown {
   id: string;
   equipmentId: string;
@@ -449,6 +463,78 @@ class StorageManager {
 
     this.saveMaintenanceTasks(defaultTasks);
     return defaultTasks;
+  }
+
+  // Gestion des données thermiques des échangeurs
+  getThermalReadings(): ThermalReading[] {
+    const readings = localStorage.getItem('thermalReadings');
+    return readings ? JSON.parse(readings) : this.getDefaultThermalReadings();
+  }
+
+  saveThermalReadings(readings: ThermalReading[]): void {
+    localStorage.setItem('thermalReadings', JSON.stringify(readings));
+  }
+
+  addThermalReading(reading: ThermalReading): void {
+    const readings = this.getThermalReadings();
+    readings.push(reading);
+    this.saveThermalReadings(readings);
+  }
+
+  getThermalReadingsByEquipment(equipmentId: string): ThermalReading[] {
+    return this.getThermalReadings().filter(reading => reading.equipmentId === equipmentId);
+  }
+
+  getRecentThermalReadings(equipmentId: string, days: number = 30): ThermalReading[] {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return this.getThermalReadingsByEquipment(equipmentId).filter(reading => 
+      new Date(reading.timestamp) >= cutoffDate
+    );
+  }
+
+  private getDefaultThermalReadings(): ThermalReading[] {
+    const now = new Date();
+    const defaultReadings: ThermalReading[] = [];
+
+    // Générer des données de test pour les échangeurs de chaleur
+    const heatExchangers = this.getEquipments().filter(eq => eq.type === 'heat_exchanger');
+    
+    heatExchangers.forEach(exchanger => {
+      // Générer 30 jours de données avec dégradation progressive
+      for (let i = 30; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(date.getDate() - i);
+        
+        // Simulation de dégradation: efficacité diminue avec le temps
+        const degradationFactor = 1 - (i * 0.002); // Perte de 0.2% par jour
+        const baseEfficiency = 0.85; // 85% d'efficacité de base
+        const currentEfficiency = baseEfficiency * degradationFactor;
+        
+        // Températures simulées basées sur l'efficacité
+        const hotInlet = 85 + Math.random() * 5; // 85-90°C
+        const coldInlet = 25 + Math.random() * 3; // 25-28°C
+        const deltaT = (hotInlet - coldInlet) * currentEfficiency;
+        
+        defaultReadings.push({
+          id: `thermal-${exchanger.id}-${i}`,
+          equipmentId: exchanger.id,
+          timestamp: date.toISOString(),
+          hotInletTemp: Math.round(hotInlet * 10) / 10,
+          hotOutletTemp: Math.round((hotInlet - deltaT * 0.8) * 10) / 10,
+          coldInletTemp: Math.round(coldInlet * 10) / 10,
+          coldOutletTemp: Math.round((coldInlet + deltaT * 0.6) * 10) / 10,
+          flowRateHot: 2.5 + Math.random() * 0.5, // 2.5-3.0 kg/s
+          flowRateCold: 3.0 + Math.random() * 0.5, // 3.0-3.5 kg/s
+          efficiency: Math.round(currentEfficiency * 100 * 10) / 10,
+          recordedBy: 'system'
+        });
+      }
+    });
+
+    this.saveThermalReadings(defaultReadings);
+    return defaultReadings;
   }
 }
 

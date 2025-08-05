@@ -6,6 +6,7 @@ import Image from 'next/image';
 import StorageManager, { type User, type Equipment, type Breakdown, type MaintenanceTask } from '@/lib/storage';
 import PerformanceCalculator, { type PerformanceMetrics, type EquipmentMetrics } from '@/lib/calculations';
 import NotificationManager from '@/lib/notifications';
+import Navigation from '@/components/Navigation';
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
@@ -161,42 +162,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* En-tête */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Image
-                src="/logo.png"
-                alt="Dangote Cement"
-                width={60}
-                height={40}
-                className="mr-4"
-              />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">GMAO Dangote Cement</h1>
-                <p className="text-sm text-gray-600">Tableau de bord</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                <p className="text-xs text-gray-600 capitalize">{user?.role}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Déconnexion
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navigation currentUser={user} onLogout={handleLogout} />
 
       {/* Contenu principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Métriques globales */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">{/* Métriques globales */}
         {globalMetrics && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200">
