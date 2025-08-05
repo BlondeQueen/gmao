@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Wrench, Plus, Search, Filter, Edit, Trash2 } from 'lucide-react';
-import StorageManager, { type Equipment } from '@/lib/storage';
+import StorageManager, { type Equipment, type User } from '@/lib/storage';
+import Navigation from '@/components/Navigation';
 
 export default function EquipmentPage() {
+  const [user, setUser] = useState<User | null>(null);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -26,6 +28,11 @@ export default function EquipmentPage() {
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
 
+  const handleLogout = () => {
+    storageManager.logout();
+    router.push('/');
+  };
+
   useEffect(() => {
     // Vérifier l'authentification
     const currentUser = storageManager.getCurrentUser();
@@ -33,6 +40,8 @@ export default function EquipmentPage() {
       router.push('/');
       return;
     }
+
+    setUser(currentUser);
 
     // Charger les équipements
     const equipmentsData = storageManager.getEquipments();
@@ -164,32 +173,27 @@ export default function EquipmentPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Wrench className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Gestion des Équipements</h1>
-                <p className="text-gray-600">Dangote Cement Cameroon</p>
+      <Navigation currentUser={user} onLogout={handleLogout} />
+
+      {/* Contenu principal avec padding pour sidebar */}
+      <div className="lg:pl-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* En-tête */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Wrench className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Gestion des Équipements</h1>
+                  <p className="text-gray-600">Dangote Cement Cameroon</p>
+                </div>
               </div>
             </div>
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
-            >
-              Retour au Dashboard
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* Contenu principal */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Barre d'outils */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          {/* Barre d'outils */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
               {/* Recherche */}
               <div className="relative">
@@ -511,6 +515,7 @@ export default function EquipmentPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

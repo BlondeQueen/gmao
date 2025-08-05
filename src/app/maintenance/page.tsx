@@ -2,21 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Navigation from '@/components/Navigation';
 import { 
   Wrench, 
   Plus, 
   Calendar,
   Clock,
-  User,
+  User as UserIcon,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Edit,
   Trash2
 } from 'lucide-react';
-import StorageManager, { type MaintenanceTask, type Equipment } from '@/lib/storage';
+import StorageManager, { type MaintenanceTask, type Equipment, type User } from '@/lib/storage';
 
 export default function MaintenancePage() {
+  const [user, setUser] = useState<User | null>(null);
   const [tasks, setTasks] = useState<MaintenanceTask[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -41,6 +43,11 @@ export default function MaintenancePage() {
 
   const router = useRouter();
   const storageManager = StorageManager.getInstance();
+
+  const handleLogout = () => {
+    storageManager.logout();
+    router.push('/');
+  };
 
   useEffect(() => {
     // Vérifier l'authentification
@@ -386,7 +393,7 @@ export default function MaintenancePage() {
                     <div>
                       <span className="font-medium text-gray-700">Assigné à:</span>
                       <div className="text-gray-900 flex items-center">
-                        <User className="h-4 w-4 mr-1" />
+                        <UserIcon className="h-4 w-4 mr-1" />
                         {task.assignedTo || 'Non assigné'}
                       </div>
                     </div>
