@@ -1,450 +1,553 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  Thermometer,
-  TrendingDown,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle,
-  Calendar,
-  Plus,
-  Activity,
-  Gauge,
-  Droplets,
-  ArrowUp,
-  ArrowDown,
-  Minus
-} from 'lucide-react';
-import StorageManager, { type ThermalReading, type Equipment, type User } from '@/lib/storage';
-import { HeatExchangerAnalyzer, type HeatExchangerEfficiency, type ThermalData } from '@/lib/calculations';
 import Navigation from '@/components/Navigation';
 
+interface ThermalMeasurement {
+  id: string;
+  exchangerType: string;
+  hotInletTemp: number;
+  hotOutletTemp: number;
+  coldInletTemp: number;
+  coldOutletTemp: number;
+  hotFlowRate: number;
+  coldFlowRate: number;
+  timestamp: Date;
+  efficiency: number;
+  deltaT: number;
+  status: 'optimal' | 'warning' | 'critical';
+}
+
 export default function EfficacitePage() {
-  const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
-  const [heatExchangers, setHeatExchangers] = useState<Equipment[]>([]);
-  const [efficiencyData, setEfficiencyData] = useState<HeatExchangerEfficiency[]>([]);
-  const [thermalReadings, setThermalReadings] = useState<ThermalReading[]>([]);
-  const [selectedExchanger, setSelectedExchanger] = useState<string>('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newReading, setNewReading] = useState({
+  const [measurements, setMeasurements] = useState<ThermalMeasurement[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [editingMeasurement, setEditingMeasurement] = useState<ThermalMeasurement | null>(null);
+  const [formData, setFormData] = useState({
+    exchangerType: '',
     hotInletTemp: '',
     hotOutletTemp: '',
     coldInletTemp: '',
     coldOutletTemp: '',
-    flowRateHot: '',
-    flowRateCold: ''
+    hotFlowRate: '',
+    coldFlowRate: ''
   });
-  const [loading, setLoading] = useState(true);
 
-  const storageManager = StorageManager.getInstance();
-
+  // Charger les données au démarrage
   useEffect(() => {
-    // Vérifier l'authentification
-    const currentUser = storageManager.getCurrentUser();
-    if (!currentUser) {
-      router.push('/');
-      return;
-    }
+    loadMeasurements();
+  }, []);
 
-    setUser(currentUser);
-    loadData();
-  }, [router]);
-
-  const handleLogout = () => {
-    storageManager.logout();
-    router.push('/');
-  };
-
-  const loadData = () => {
+  const loadMeasurements = () => {
     try {
-      // Charger les équipements échangeurs de chaleur
-      const allEquipments = storageManager.getEquipments();
-      const exchangers = allEquipments.filter(eq => eq.type === 'heat_exchanger');
-      setHeatExchangers(exchangers);
-
-      // Charger les données thermiques
-      const readings = storageManager.getThermalReadings();
-      setThermalReadings(readings);
-
-      // Calculer l'efficacité pour chaque échangeur
-      const efficiencies = exchangers.map(exchanger => {
-        const exchangerReadings = readings.filter(r => r.equipmentId === exchanger.id);
-        const thermalData: ThermalData[] = exchangerReadings.map(r => ({
-          timestamp: r.timestamp,
-          hotInletTemp: r.hotInletTemp,
-          hotOutletTemp: r.hotOutletTemp,
-          coldInletTemp: r.coldInletTemp,
-          coldOutletTemp: r.coldOutletTemp,
-          flowRateHot: r.flowRateHot,
-          flowRateCold: r.flowRateCold
+      const stored = localStorage.getItem('thermal_measurements');
+      if (stored) {
+        const data = JSON.parse(stored).map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
         }));
-
-        return HeatExchangerAnalyzer.evaluateHeatExchanger(exchanger, thermalData, 85);
-      });
-
-      setEfficiencyData(efficiencies);
-      setLoading(false);
+        setMeasurements(data);
+      } else {
+        // Données d'exemple
+        const sampleData: ThermalMeasurement[] = [
+          {
+            id: '1',
+            exchangerType: 'echangeur-1',
+            hotInletTemp: 85,
+            hotOutletTemp: 75,
+            coldInletTemp: 20,
+            coldOutletTemp: 30,
+            hotFlowRate: 2.5,
+            coldFlowRate: 3.0,
+            timestamp: new Date(Date.now() - 1000 * 60 * 30),
+            efficiency: 85.5,
+            deltaT: 10,
+            status: 'optimal'
+          },
+          {
+            id: '2',
+            exchangerType: 'echangeur-2',
+            hotInletTemp: 80,
+            hotOutletTemp: 78,
+            coldInletTemp: 25,
+            coldOutletTemp: 27,
+            hotFlowRate: 2.2,
+            coldFlowRate: 2.8,
+            timestamp: new Date(Date.now() - 1000 * 60 * 60),
+            efficiency: 45.2,
+            deltaT: 2,
+            status: 'critical'
+          }
+        ];
+        setMeasurements(sampleData);
+        saveMeasurements(sampleData);
+      }
     } catch (error) {
-      console.error('Erreur lors du chargement des données:', error);
-      setLoading(false);
+      console.error('Erreur lors du chargement des mesures:', error);
     }
   };
 
-  const handleAddReading = () => {
-    if (!selectedExchanger || !newReading.hotInletTemp || !newReading.hotOutletTemp || 
-        !newReading.coldInletTemp || !newReading.coldOutletTemp) {
-      alert('Veuillez remplir tous les champs obligatoires');
+  const saveMeasurements = (data: ThermalMeasurement[]) => {
+    try {
+      localStorage.setItem('thermal_measurements', JSON.stringify(data));
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    }
+  };
+
+  const calculateEfficiency = (measurement: Omit<ThermalMeasurement, 'id' | 'timestamp' | 'efficiency' | 'deltaT' | 'status'>) => {
+    const deltaT = Math.abs(measurement.hotInletTemp - measurement.hotOutletTemp);
+    const efficiency = (deltaT / measurement.hotInletTemp) * 100;
+    const status: 'optimal' | 'warning' | 'critical' = 
+      deltaT >= 10 ? 'optimal' : 
+      deltaT >= 5 ? 'warning' : 'critical';
+    
+    return { efficiency, deltaT, status };
+  };
+
+  // CREATE - Ajouter une nouvelle mesure
+  const handleCreate = () => {
+    if (!formData.exchangerType || !formData.hotInletTemp || !formData.hotOutletTemp || 
+        !formData.coldInletTemp || !formData.coldOutletTemp || !formData.hotFlowRate || !formData.coldFlowRate) {
+      alert('Veuillez remplir tous les champs');
       return;
     }
 
-    const reading: ThermalReading = {
-      id: `thermal-${Date.now()}`,
-      equipmentId: selectedExchanger,
-      timestamp: new Date().toISOString(),
-      hotInletTemp: parseFloat(newReading.hotInletTemp),
-      hotOutletTemp: parseFloat(newReading.hotOutletTemp),
-      coldInletTemp: parseFloat(newReading.coldInletTemp),
-      coldOutletTemp: parseFloat(newReading.coldOutletTemp),
-      flowRateHot: parseFloat(newReading.flowRateHot) || 2.5,
-      flowRateCold: parseFloat(newReading.flowRateCold) || 3.0,
-      recordedBy: storageManager.getCurrentUser()?.name || 'Inconnu'
+    const measurementData = {
+      exchangerType: formData.exchangerType,
+      hotInletTemp: parseFloat(formData.hotInletTemp),
+      hotOutletTemp: parseFloat(formData.hotOutletTemp),
+      coldInletTemp: parseFloat(formData.coldInletTemp),
+      coldOutletTemp: parseFloat(formData.coldOutletTemp),
+      hotFlowRate: parseFloat(formData.hotFlowRate),
+      coldFlowRate: parseFloat(formData.coldFlowRate)
     };
 
-    storageManager.addThermalReading(reading);
+    const { efficiency, deltaT, status } = calculateEfficiency(measurementData);
+
+    const newMeasurement: ThermalMeasurement = {
+      id: Date.now().toString(),
+      ...measurementData,
+      timestamp: new Date(),
+      efficiency,
+      deltaT,
+      status
+    };
+
+    const updatedMeasurements = [newMeasurement, ...measurements];
+    setMeasurements(updatedMeasurements);
+    saveMeasurements(updatedMeasurements);
+    resetForm();
+    setShowModal(false);
+  };
+
+  // UPDATE - Modifier une mesure existante
+  const handleUpdate = () => {
+    if (!editingMeasurement) return;
+
+    const measurementData = {
+      exchangerType: formData.exchangerType,
+      hotInletTemp: parseFloat(formData.hotInletTemp),
+      hotOutletTemp: parseFloat(formData.hotOutletTemp),
+      coldInletTemp: parseFloat(formData.coldInletTemp),
+      coldOutletTemp: parseFloat(formData.coldOutletTemp),
+      hotFlowRate: parseFloat(formData.hotFlowRate),
+      coldFlowRate: parseFloat(formData.coldFlowRate)
+    };
+
+    const { efficiency, deltaT, status } = calculateEfficiency(measurementData);
+
+    const updatedMeasurement: ThermalMeasurement = {
+      ...editingMeasurement,
+      ...measurementData,
+      efficiency,
+      deltaT,
+      status
+    };
+
+    const updatedMeasurements = measurements.map(m => 
+      m.id === editingMeasurement.id ? updatedMeasurement : m
+    );
     
-    // Réinitialiser le formulaire
-    setNewReading({
+    setMeasurements(updatedMeasurements);
+    saveMeasurements(updatedMeasurements);
+    resetForm();
+    setShowModal(false);
+    setEditingMeasurement(null);
+  };
+
+  // DELETE - Supprimer une mesure
+  const handleDelete = (id: string) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette mesure ?')) {
+      const updatedMeasurements = measurements.filter(m => m.id !== id);
+      setMeasurements(updatedMeasurements);
+      saveMeasurements(updatedMeasurements);
+    }
+  };
+
+  // Ouvrir modal pour édition
+  const handleEdit = (measurement: ThermalMeasurement) => {
+    setEditingMeasurement(measurement);
+    setFormData({
+      exchangerType: measurement.exchangerType,
+      hotInletTemp: measurement.hotInletTemp.toString(),
+      hotOutletTemp: measurement.hotOutletTemp.toString(),
+      coldInletTemp: measurement.coldInletTemp.toString(),
+      coldOutletTemp: measurement.coldOutletTemp.toString(),
+      hotFlowRate: measurement.hotFlowRate.toString(),
+      coldFlowRate: measurement.coldFlowRate.toString()
+    });
+    setShowModal(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      exchangerType: '',
       hotInletTemp: '',
       hotOutletTemp: '',
       coldInletTemp: '',
       coldOutletTemp: '',
-      flowRateHot: '',
-      flowRateCold: ''
+      hotFlowRate: '',
+      coldFlowRate: ''
     });
-    setShowAddModal(false);
-    
-    // Recharger les données
-    loadData();
+    setEditingMeasurement(null);
   };
 
-  const getAlertIcon = (alertLevel: string) => {
-    switch (alertLevel) {
-      case 'green': return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'yellow': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-      case 'orange': return <AlertTriangle className="h-5 w-5 text-orange-500" />;
-      case 'red': return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      default: return <CheckCircle className="h-5 w-5 text-gray-500" />;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'optimal': return 'text-green-600 bg-green-100';
+      case 'warning': return 'text-yellow-600 bg-yellow-100';
+      case 'critical': return 'text-red-600 bg-red-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
-  const getAlertColor = (alertLevel: string) => {
-    switch (alertLevel) {
-      case 'green': return 'bg-green-100 border-green-200 text-green-800';
-      case 'yellow': return 'bg-yellow-100 border-yellow-200 text-yellow-800';
-      case 'orange': return 'bg-orange-100 border-orange-200 text-orange-800';
-      case 'red': return 'bg-red-100 border-red-200 text-red-800';
-      default: return 'bg-gray-100 border-gray-200 text-gray-800';
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'optimal': return '✅';
+      case 'warning': return '⚠️';
+      case 'critical': return '❌';
+      default: return '❓';
     }
   };
 
-  const getTrendIcon = (degradationRate: number) => {
-    if (degradationRate < -1) return <TrendingDown className="h-4 w-4 text-red-500" />;
-    if (degradationRate > 1) return <TrendingUp className="h-4 w-4 text-green-500" />;
-    return <Minus className="h-4 w-4 text-gray-500" />;
-  };
-
-  const getActionText = (action: string) => {
-    switch (action) {
-      case 'none': return 'Aucune action';
-      case 'monitoring': return 'Surveillance renforcée';
-      case 'cleaning': return 'Nettoyage recommandé';
-      case 'maintenance': return 'Maintenance requise';
-      case 'replacement': return 'Remplacement nécessaire';
-      default: return 'Action indéterminée';
+  const getExchangerName = (type: string) => {
+    switch (type) {
+      case 'echangeur-1': return 'Échangeur Principal #1';
+      case 'echangeur-2': return 'Échangeur Principal #2';
+      case 'echangeur-secours': return 'Échangeur de Secours';
+      default: return type;
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Chargement des données d'efficacité...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navigation currentUser={user} onLogout={handleLogout} />
+      <Navigation />
       
-      {/* Contenu principal avec padding pour sidebar */}
-      <div className="lg:pl-64">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="p-8">
+        <div className="max-w-7xl mx-auto">
           {/* En-tête */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Efficacité des Échangeurs</h1>
-              <p className="mt-2 text-gray-600">
-                Analyse thermique et maintenance prédictive des échangeurs de chaleur
-              </p>
-            </div>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Nouvelle Mesure
-            </button>
-          </div>
-        </div>
-
-        {/* Statistiques globales */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <Thermometer className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Échangeurs Analysés</p>
-                <p className="text-2xl font-bold text-gray-900">{efficiencyData.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <Gauge className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Efficacité Moyenne</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {efficiencyData.length > 0 
-                    ? Math.round(efficiencyData.reduce((sum, e) => sum + e.currentEfficiency, 0) / efficiencyData.length)
-                    : 0}%
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <AlertTriangle className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Alertes Actives</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {efficiencyData.filter(e => e.alertLevel !== 'green').length}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center">
-              <Calendar className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Maintenances Prédites</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {efficiencyData.filter(e => 
-                    new Date(e.predictedMaintenanceDate) <= new Date(Date.now() + 30*24*60*60*1000)
-                  ).length}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Liste des échangeurs */}
-        <div className="grid gap-6">
-          {efficiencyData.map((efficiency) => (
-            <div key={efficiency.equipmentId} className="bg-white rounded-lg shadow-sm border">
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{efficiency.equipmentName}</h3>
-                    <p className="text-gray-600">ID: {efficiency.equipmentId}</p>
-                  </div>
-                  <div className={`flex items-center px-3 py-1 rounded-full border ${getAlertColor(efficiency.alertLevel)}`}>
-                    {getAlertIcon(efficiency.alertLevel)}
-                    <span className="ml-2 text-sm font-medium">{efficiency.alertLevel.toUpperCase()}</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                  {/* Efficacité actuelle */}
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600 mb-1">
-                      {efficiency.currentEfficiency}%
-                    </div>
-                    <div className="text-sm text-gray-600">Efficacité Actuelle</div>
-                    <div className="text-xs text-gray-500">
-                      (Conception: {efficiency.designEfficiency}%)
-                    </div>
-                  </div>
-
-                  {/* Taux de dégradation */}
-                  <div className="text-center">
-                    <div className="flex items-center justify-center mb-1">
-                      {getTrendIcon(efficiency.degradationRate)}
-                      <span className="text-lg font-semibold ml-2 text-gray-900">
-                        {Math.abs(efficiency.degradationRate).toFixed(1)}%/mois
-                      </span>
-                    </div>
-                    <div className="text-sm text-gray-600">Taux de Dégradation</div>
-                  </div>
-
-                  {/* Transfert thermique */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900 mb-1">
-                      {efficiency.thermodynamicData.actualHeatTransfer.toFixed(1)} kW
-                    </div>
-                    <div className="text-sm text-gray-600">Transfert Actuel</div>
-                    <div className="text-xs text-gray-500">
-                      (Max: {efficiency.thermodynamicData.maxPossibleHeatTransfer.toFixed(1)} kW)
-                    </div>
-                  </div>
-
-                  {/* Date de maintenance prédite */}
-                  <div className="text-center">
-                    <div className="text-lg font-semibold text-gray-900 mb-1">
-                      {new Date(efficiency.predictedMaintenanceDate).toLocaleDateString('fr-FR')}
-                    </div>
-                    <div className="text-sm text-gray-600">Maintenance Prédite</div>
-                  </div>
-                </div>
-
-                {/* Action recommandée */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium text-gray-900">Action Recommandée</h4>
-                      <p className="text-gray-600">{getActionText(efficiency.recommendedAction)}</p>
-                    </div>
-                    <Activity className="h-6 w-6 text-gray-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Modal d'ajout de mesure */}
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
-              <h3 className="text-lg font-semibold mb-4">Nouvelle Mesure Thermique</h3>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">🌡️ Efficacité des Échangeurs</h1>
+            <p className="text-gray-600">Surveillance thermique en temps réel </p>
+            
+            <div className="mt-4 flex items-center space-x-4">
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowModal(true);
+                }}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                + Nouvelle Mesure
+              </button>
               
-              <div className="space-y-4">
+              <div className="text-sm text-gray-600">
+                Total: {measurements.length} mesures
+              </div>
+            </div>
+          </div>
+
+          {/* Statistiques */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-green-600">
+                {measurements.filter(m => m.status === 'optimal').length}
+              </div>
+              <div className="text-sm text-gray-600">Mesures Optimales</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-yellow-600">
+                {measurements.filter(m => m.status === 'warning').length}
+              </div>
+              <div className="text-sm text-gray-600">Avertissements</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-red-600">
+                {measurements.filter(m => m.status === 'critical').length}
+              </div>
+              <div className="text-sm text-gray-600">Critiques</div>
+            </div>
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="text-2xl font-bold text-blue-600">
+                {measurements.length > 0 ? 
+                  (measurements.reduce((acc, m) => acc + m.efficiency, 0) / measurements.length).toFixed(1) + '%'
+                  : '0%'
+                }
+              </div>
+              <div className="text-sm text-gray-600">Efficacité Moyenne</div>
+            </div>
+          </div>
+
+          {/* Table des mesures */}
+          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Historique des Mesures</h2>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Échangeur
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Températures (°C)
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Débits (kg/s)
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Delta T
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Efficacité
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date/Heure
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {measurements.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                        Aucune mesure enregistrée. Cliquez sur "Nouvelle Mesure" pour commencer.
+                      </td>
+                    </tr>
+                  ) : (
+                    measurements.map((measurement) => (
+                      <tr key={measurement.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {getExchangerName(measurement.exchangerType)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>In: {measurement.hotInletTemp}°C → {measurement.hotOutletTemp}°C</div>
+                            <div>Out: {measurement.coldInletTemp}°C → {measurement.coldOutletTemp}°C</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            <div>Chaud: {measurement.hotFlowRate}</div>
+                            <div>Froid: {measurement.coldFlowRate}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {measurement.deltaT.toFixed(1)}°C
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {measurement.efficiency.toFixed(1)}%
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(measurement.status)}`}>
+                            {getStatusIcon(measurement.status)} {measurement.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {measurement.timestamp.toLocaleString('fr-FR')}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEdit(measurement)}
+                              className="text-blue-600 hover:text-blue-900"
+                            >
+                              ✏️ Modifier
+                            </button>
+                            <button
+                              onClick={() => handleDelete(measurement.id)}
+                              className="text-red-600 hover:text-red-900"
+                            >
+                              🗑️ Supprimer
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Nouvelle/Modifier Mesure */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-h-screen overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingMeasurement ? 'Modifier la Mesure' : 'Nouvelle Mesure Thermique'}
+              </h3>
+              <button
+                onClick={() => {
+                  resetForm();
+                  setShowModal(false);
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form className="space-y-4">
+              {/* Sélection Échangeur */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Sélectionner un échangeur
+                </label>
+                <select
+                  value={formData.exchangerType}
+                  onChange={(e) => setFormData({...formData, exchangerType: e.target.value})}
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Choisir un échangeur...</option>
+                  <option value="echangeur-1">Échangeur Principal #1</option>
+                  <option value="echangeur-2">Échangeur Principal #2</option>
+                  <option value="echangeur-secours">Échangeur de Secours</option>
+                </select>
+              </div>
+
+              {/* Températures */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Échangeur</label>
-                  <select
-                    value={selectedExchanger}
-                    onChange={(e) => setSelectedExchanger(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="">Sélectionner un échangeur</option>
-                    {heatExchangers.map(exchanger => (
-                      <option key={exchanger.id} value={exchanger.id}>
-                        {exchanger.name}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    T° Entrée Chaud (huile) (°C)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.hotInletTemp}
+                    onChange={(e) => setFormData({...formData, hotInletTemp: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="85"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">T° Entrée Chaud (°C)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.hotInletTemp}
-                      onChange={(e) => setNewReading({...newReading, hotInletTemp: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">T° Sortie Chaud (°C)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.hotOutletTemp}
-                      onChange={(e) => setNewReading({...newReading, hotOutletTemp: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    T° Sortie Chaud (huile) (°C)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.hotOutletTemp}
+                    onChange={(e) => setFormData({...formData, hotOutletTemp: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="75"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">T° Entrée Froid (°C)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.coldInletTemp}
-                      onChange={(e) => setNewReading({...newReading, coldInletTemp: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">T° Sortie Froid (°C)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.coldOutletTemp}
-                      onChange={(e) => setNewReading({...newReading, coldOutletTemp: e.target.value})}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    T° Entrée Froid (eau) (°C)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.coldInletTemp}
+                    onChange={(e) => setFormData({...formData, coldInletTemp: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="20"
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Débit Chaud (kg/s)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.flowRateHot}
-                      onChange={(e) => setNewReading({...newReading, flowRateHot: e.target.value})}
-                      placeholder="2.5"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Débit Froid (kg/s)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={newReading.flowRateCold}
-                      onChange={(e) => setNewReading({...newReading, flowRateCold: e.target.value})}
-                      placeholder="3.0"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    T° Sortie Froid (eau) (°C)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.coldOutletTemp}
+                    onChange={(e) => setFormData({...formData, coldOutletTemp: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="30"
+                  />
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-4 mt-6">
+              {/* Débits */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Débit Chaud (kg/s)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.hotFlowRate}
+                    onChange={(e) => setFormData({...formData, hotFlowRate: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="2.5"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Débit Froid (kg/s)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={formData.coldFlowRate}
+                    onChange={(e) => setFormData({...formData, coldFlowRate: e.target.value})}
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="3.0"
+                  />
+                </div>
+              </div>
+
+              {/* Boutons */}
+              <div className="flex space-x-3 pt-4">
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  type="button"
+                  onClick={() => {
+                    resetForm();
+                    setShowModal(false);
+                  }}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   Annuler
                 </button>
                 <button
-                  onClick={handleAddReading}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  type="button"
+                  onClick={editingMeasurement ? handleUpdate : handleCreate}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Enregistrer
+                  {editingMeasurement ? 'Mettre à jour' : 'Enregistrer'}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
-        )}
         </div>
-      </div>
+      )}
     </div>
   );
 }
